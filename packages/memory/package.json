@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@burmalda/shared": "workspace:*",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "@burmalda/core": "workspace:*"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1"
