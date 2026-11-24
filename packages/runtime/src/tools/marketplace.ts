@@ -86,6 +86,11 @@ export function marketplaceSearchTool(
       const value = JSON.stringify({
         offers: offers.map(compact),
         unavailable: failed,
+        ...(offers.length === 0 && failed.length > 0
+          ? {
+              note: "Ни одна площадка не отдала результаты. Скажи владельцу, какие недоступны и почему; защиту не обходи.",
+            }
+          : {}),
       });
       if (offers.length > 0) cache.set(key, { at: now(), value });
       return value;

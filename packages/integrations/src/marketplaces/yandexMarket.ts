@@ -1,4 +1,3 @@
-import { curlFetch } from "./curlFetch";
 import {
   MarketplaceBlockedError,
   type MarketplaceAdapter,
@@ -21,15 +20,14 @@ export interface YandexMarketOptions {
  * Яндекс Маркет: обычный GET страницы поиска без входа в аккаунт.
  * Карточки берутся из JSON в атрибуте data-zone-data у сниппетов (`data-zone-name="productSnippet"`);
  * в первой выдаче ~8 карточек, остальные подгружаются скриптом — их не добираем.
- * Капча или 403/429 → MarketplaceBlockedError, никаких обходов.
+ * Капча или 403/429 → MarketplaceBlockedError, никаких обходов (ни решения капчи, ни подмены
+ * TLS-отпечатка клиента). Маркет часто отвечает капчей на запросы из Node — тогда площадка
+ * честно помечается недоступной, а marketplace_search возвращает результаты остальных.
  */
 export function createYandexMarketAdapter(
   options: YandexMarketOptions = {},
 ): MarketplaceAdapter {
-  // по умолчанию curl: встроенный fetch получает капчу (см. curlFetch.ts)
-  const fetchImpl =
-    options.fetchImpl ??
-    (process.env.MARKETPLACE_HTTP === "fetch" ? fetch : curlFetch);
+  const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? BASE_URL;
   const now = options.now ?? (() => new Date());
 

@@ -10,10 +10,9 @@ import { createYandexMarketAdapter } from "./yandexMarket";
 
 export * from "./types";
 export * from "./yandexMarket";
-export * from "./curlFetch";
 
 /**
- * Яндекс Маркет готов (обычный HTTP, см. yandexMarket.ts).
+ * Яндекс Маркет: обычный HTTP-запрос (см. yandexMarket.ts); на капче — MarketplaceBlockedError, без обходов.
  * TODO(B): адаптеры Ozon и Wildberries. Простые HTTP-запросы к их поиску блокируются антиботом
  * (WB — 403, Ozon — 307), поэтому чтение идёт через браузер в песочнице (см. docs/PLAN.md,
  * «Маркетплейсы»). Без входа в аккаунт, с паузами и кэшем; на капче — MarketplaceBlockedError.

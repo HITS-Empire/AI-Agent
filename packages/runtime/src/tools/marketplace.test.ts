@@ -73,3 +73,25 @@ test("marketplace_search: сводит площадки, недоступную 
   );
   assert.equal(JSON.parse(onlyYm.content).unavailable.length, 0);
 });
+
+test("marketplace_search: все площадки на капче — понятный результат и без кэша", async () => {
+  let calls = 0;
+  const ym: MarketplaceAdapter = {
+    id: "yandex_market",
+    async search() {
+      calls++;
+      throw new MarketplaceBlockedError("yandex_market", "captcha");
+    },
+  };
+  const tools = new ToolRegistry();
+  tools.register(marketplaceSearchTool([ym]));
+  const args = JSON.stringify({ query: "наушники" });
+  const out = JSON.parse(
+    (await tools.call("marketplace_search", args, ctx)).content,
+  );
+  assert.deepEqual(out.offers, []);
+  assert.match(out.unavailable[0].error, /captcha/);
+  assert.match(out.note, /не обходи/);
+  await tools.call("marketplace_search", args, ctx);
+  assert.equal(calls, 2);
+});
