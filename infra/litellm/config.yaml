@@ -57,11 +57,14 @@ model_list:
   #     model: openai/gpt-6.1-sol
   #     api_key: os.environ/OPENAI_API_KEY
 
+# Маршрутизация: приложение знает только алиасы, шлюз решает, куда идти (см. docs/GATEWAY.md).
 router_settings:
   num_retries: 2
   timeout: 300
-  # fallbacks:
-  #   - burmalda-main: ["burmalda-main-fallback"]
+  # Основная модель недоступна (лимит подписки, 5xx) → дешёвая модель той же подписки.
+  # Платный резерв: раскомментировать burmalda-main-fallback выше и добавить его в начало списка.
+  fallbacks:
+    - burmalda-main: ["burmalda-fast"]
 
 litellm_settings:
   # Трассировка каждого вызова модели в Phoenix (OpenInference)
