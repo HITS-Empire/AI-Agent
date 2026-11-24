@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@burmalda/shared": "workspace:*",
-    "bullmq": "^6.7.10"
+    "bullmq": "^6.7.10",
+    "ioredis": "^5.11.1"
   }
 }
