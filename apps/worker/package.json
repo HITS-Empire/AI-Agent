@@ -11,6 +11,7 @@
     "@burmalda/core": "workspace:*",
     "@burmalda/memory": "workspace:*",
     "@burmalda/queue": "workspace:*",
+    "@burmalda/runtime": "workspace:*",
     "@burmalda/sandbox": "workspace:*",
     "@burmalda/shared": "workspace:*"
   }

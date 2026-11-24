@@ -10,6 +10,7 @@
   "dependencies": {
     "@burmalda/core": "workspace:*",
     "@burmalda/queue": "workspace:*",
+    "@burmalda/runtime": "workspace:*",
     "@burmalda/shared": "workspace:*"
   }
 }
