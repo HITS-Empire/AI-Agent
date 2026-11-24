@@ -1,0 +1,17 @@
+{
+  "name": "@burmalda/observability",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@burmalda/core": "workspace:*",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.301.2",
+    "@opentelemetry/resources": "^2.12.0",
+    "@opentelemetry/sdk-trace-base": "^2.12.0",
+    "@opentelemetry/sdk-trace-node": "^2.12.0"
+  }
+}
