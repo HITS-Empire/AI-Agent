@@ -172,3 +172,51 @@ test("оценка учитывает невидимую часть запрос
     5000,
   );
 });
+
+test("одна длинная задача без новых user: режется по границе группы инструментов", async () => {
+  const llm = new FakeLlmClient([
+    { text: "- владелец просил собрать отчёт; шаги 1–5 сделаны" },
+  ]);
+  const manager = new ContextManager({
+    llm,
+    model: "burmalda-fast",
+    contextWindow: 1000,
+    compactAt: 0.5,
+    keepRecent: 4,
+    pruneToolOutputOver: 100_000,
+  });
+  const messages: ChatMessage[] = [
+    { role: "system", content: "s" },
+    { role: "user", content: "собери отчёт" },
+  ];
+  for (let i = 0; i < 8; i++) {
+    messages.push({
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: `c${i}`,
+          type: "function",
+          function: { name: "step", arguments: "{}" },
+        },
+      ],
+    });
+    messages.push({
+      role: "tool",
+      tool_call_id: `c${i}`,
+      content: "x".repeat(200),
+    });
+  }
+  const result = await manager.maybeCompact(messages);
+  assert.equal(result?.kind, "summarized");
+  assert.ok(String(messages[1]!.content).startsWith(SUMMARY_PREFIX));
+  // после сводки — сразу assistant с tool_calls, и у каждого tool есть свой вызов
+  assert.equal(messages[2]!.role, "assistant");
+  const called = new Set<string>();
+  for (const m of messages.slice(2)) {
+    if (m.role === "assistant")
+      for (const c of m.tool_calls ?? []) called.add(c.id);
+    if (m.role === "tool") assert.ok(called.has(m.tool_call_id));
+  }
+  assert.ok(llm.requests[0]!.messages[1]!.content!.includes("собери отчёт"));
+});

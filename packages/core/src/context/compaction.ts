@@ -196,6 +196,16 @@ export class ContextManager {
       for (let i = messages.length - 1; i > this.pinnedHead; i--) {
         if (messages[i]?.role === "user") return i;
       }
+      // Одна длинная задача (user и дальше только assistant/tool): режем перед сообщением assistant —
+      // с него начинается группа «вызов инструментов → результаты», так пары не рвутся.
+      // Сам запрос владельца уходит в сводку (промпт сводки требует сохранить цели).
+      for (
+        let i = messages.length - this.keepRecent;
+        i > this.pinnedHead + 1;
+        i--
+      ) {
+        if (messages[i]?.role === "assistant") return i;
+      }
       return null;
     }
     return cut;
