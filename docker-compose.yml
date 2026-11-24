@@ -80,8 +80,7 @@ services:
   ollama:
     image: ollama/ollama:${OLLAMA_TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    # Порт наружу не публикуется: эмбеддинги доступны только через шлюз (burmalda-embed), обход LiteLLM невозможен
     volumes:
       - ollama-data:/root/.ollama
 
