@@ -1,7 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { InMemorySpanExporter } from "@opentelemetry/sdk-trace-base";
-import { FakeLlmClient, ToolRegistry, runAgent } from "@burmalda/core";
+import {
+  ContextManager,
+  FakeLlmClient,
+  ToolRegistry,
+  runAgent,
+  type ChatMessage,
+} from "@burmalda/core";
 import { createTracing } from "./index";
 
 test("спаны агента уходят в OTel с атрибутами OpenInference и иерархией", async () => {
@@ -59,4 +65,37 @@ test("спаны агента уходят в OTel с атрибутами OpenI
     agent.resource.attributes["openinference.project.name"],
     "burmalda",
   );
+});
+
+test("сводка при compaction — отдельный спан llm.chat под context.compaction", async () => {
+  const exporter = new InMemorySpanExporter();
+  const tracing = createTracing({
+    serviceName: "test",
+    exporter,
+    simple: true,
+  });
+  const context = new ContextManager({
+    llm: new FakeLlmClient([{ text: "- сводка" }]),
+    model: "burmalda-fast",
+    contextWindow: 100,
+    compactAt: 0.5,
+    keepRecent: 1,
+    tracer: tracing.tracer,
+  });
+  const long = "x".repeat(300);
+  const messages: ChatMessage[] = [
+    { role: "system", content: "s" },
+    { role: "user", content: long },
+    { role: "assistant", content: long },
+    { role: "user", content: "ещё" },
+  ];
+  const result = await context.maybeCompact(messages);
+  assert.equal(result?.kind, "summarized");
+  const spans = exporter.getFinishedSpans();
+  const compaction = spans.find((s) => s.name === "context.compaction")!;
+  const llm = spans.find((s) => s.name === "llm.chat")!;
+  assert.equal(llm.parentSpanContext?.spanId, compaction.spanContext().spanId);
+  assert.equal(llm.attributes["llm.model_name"], "burmalda-fast");
+  assert.equal(llm.attributes["burmalda.purpose"], "compaction");
+  await tracing.shutdown();
 });

@@ -2,6 +2,7 @@ export * from "./llm/types";
 export * from "./llm/gatewayClient";
 export * from "./llm/fakeClient";
 export * from "./llm/usage";
+export * from "./llm/traced";
 export * from "./observability/tracer";
 export * from "./tools/types";
 export * from "./tools/registry";

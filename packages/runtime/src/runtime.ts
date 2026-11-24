@@ -5,6 +5,7 @@ import {
   SUMMARY_PREFIX,
   UsageMeter,
   noopTracer,
+  tracedClient,
   registerMcpTools,
   runAgent,
   type ChatMessage,
@@ -375,7 +376,12 @@ export class AgentRuntime {
     const { extractFacts, facts } = this.deps;
     if (!extractFacts || !facts) return;
     const meter = new UsageMeter();
-    const llm = meteredClient(this.deps.llm, meter);
+    const tracer = this.deps.tracer ?? noopTracer;
+    const span = tracer.startSpan("memory.extract", "CHAIN", {
+      "session.id": input.sessionId,
+      "burmalda.task_id": taskId,
+    });
+    const llm = tracedClient(meteredClient(this.deps.llm, meter), tracer, span);
     try {
       const found = await extractFacts(messages, known, input.sessionId, llm);
       for (const fact of found)
@@ -393,6 +399,7 @@ export class AgentRuntime {
         "извлечение фактов не удалось",
       );
     } finally {
+      span.end();
       if (meter.models().length)
         await this.safe(
           "usage",

@@ -1,5 +1,6 @@
 import type { ChatMessage, LlmClient } from "../llm/types";
 import { UsageMeter } from "../llm/usage";
+import { tracedClient } from "../llm/traced";
 import type { StepInfo } from "../agent/loop";
 import { noopTracer, type Span, type Tracer } from "../observability/tracer";
 
@@ -148,7 +149,7 @@ export class ContextManager {
         }
       }
 
-      const result = await this.summarize(messages, tokensBefore);
+      const result = await this.summarize(messages, tokensBefore, span);
       span.setAttributes({
         "burmalda.compaction_kind": result?.kind ?? "none",
         "burmalda.tokens_after": result?.tokensAfter,
@@ -203,13 +204,19 @@ export class ContextManager {
   private async summarize(
     messages: ChatMessage[],
     tokensBefore: number,
+    span?: Span,
   ): Promise<CompactionResult | null> {
     const cut = this.findCut(messages);
     if (cut === null) return null;
     const old = messages.slice(this.pinnedHead, cut);
     if (old.length === 0) return null;
 
-    const response = await this.options.llm.chat({
+    const llm = tracedClient(
+      this.options.llm,
+      this.options.tracer ?? noopTracer,
+      span,
+    );
+    const response = await llm.chat({
       model: this.options.model,
       messages: [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
