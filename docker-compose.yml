@@ -39,7 +39,7 @@ services:
 
   # LLM-шлюз: учёт токенов, бюджеты, маршрутизация, логирование. Admin UI: http://localhost:4000/ui
   litellm:
-    image: docker.litellm.ai/berriai/litellm:${LITELLM_TAG:-latest}
+    image: ${LITELLM_IMAGE:-docker.litellm.ai/berriai/litellm}:${LITELLM_TAG:-latest}
     restart: unless-stopped
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     environment:
@@ -73,6 +73,8 @@ services:
       - phoenix-data:/mnt/data
     environment:
       PHOENIX_WORKING_DIR: /mnt/data
+      # Свежие образы Phoenix включают авторизацию по умолчанию; порт открыт только на 127.0.0.1
+      PHOENIX_ENABLE_AUTH: ${PHOENIX_ENABLE_AUTH:-false}
 
   # Локальные эмбеддинги для памяти (через шлюз как burmalda-embed). Модель: docker compose exec ollama ollama pull bge-m3
   ollama:
