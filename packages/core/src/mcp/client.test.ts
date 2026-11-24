@@ -8,8 +8,12 @@ import {
 import { fileURLToPath } from "node:url";
 import type { AddressInfo } from "node:net";
 import { McpClient, mcpToolName, registerMcpTools } from "./client";
-import { JsonRpcRemoteError } from "./jsonrpc";
-import { parseSseData } from "./httpTransport";
+import {
+  JsonRpcRemoteError,
+  type JsonRpcMessage,
+  type Transport,
+} from "./jsonrpc";
+import { HttpTransport, parseSseData } from "./httpTransport";
 import { parseMcpConfig } from "./config";
 import { ToolRegistry } from "../tools/registry";
 
@@ -137,7 +141,7 @@ async function startHttpServer() {
             id: message.id,
             result: {
               protocolVersion: "2025-06-18",
-              capabilities: {},
+              capabilities: { tools: {} },
               serverInfo: { name: "http-fake" },
             },
           }),
@@ -272,4 +276,145 @@ test("parseMcpConfig: подстановка ${VAR}, пропуск сервер
     without.skipped.find((s) => s.name === "github")!.reason,
     /GITHUB_TOKEN/,
   );
+});
+
+/** Транспорт в памяти: сервер — функция от сообщения клиента. */
+function memoryTransport(
+  server: (message: JsonRpcMessage, reply: (m: JsonRpcMessage) => void) => void,
+): Transport & { sent: JsonRpcMessage[] } {
+  let onMessage: (m: JsonRpcMessage) => void = () => undefined;
+  const sent: JsonRpcMessage[] = [];
+  return {
+    sent,
+    async start(handler) {
+      onMessage = handler;
+    },
+    async send(message) {
+      sent.push(message);
+      server(message, (m) => queueMicrotask(() => onMessage(m)));
+    },
+    async close() {},
+  };
+}
+
+const initResult = (
+  id: unknown,
+  protocolVersion: string,
+  capabilities: object = { tools: {} },
+) =>
+  ({
+    jsonrpc: "2.0",
+    id,
+    result: { protocolVersion, capabilities, serverInfo: { name: "t" } },
+  }) as JsonRpcMessage;
+
+test("версия протокола: неподдерживаемая версия сервера — отказ и отключение", async () => {
+  const transport = memoryTransport((m, reply) => {
+    if ("id" in m && "method" in m && m.method === "initialize")
+      reply(initResult(m.id, "2024-11-05"));
+  });
+  const client = new McpClient(
+    { name: "old", transport: "stdio", command: "x" },
+    { transport },
+  );
+  await assert.rejects(client.connect(), /2024-11-05 не поддерживается/);
+  assert.ok(
+    !transport.sent.some(
+      (m) => "method" in m && m.method === "notifications/initialized",
+    ),
+  );
+});
+
+test("initialize → initialized; без capability tools список инструментов не запрашивается", async () => {
+  const transport = memoryTransport((m, reply) => {
+    if ("id" in m && "method" in m && m.method === "initialize") {
+      assert.deepEqual(
+        (m.params as { protocolVersion: string }).protocolVersion,
+        "2025-06-18",
+      );
+      reply(initResult(m.id, "2025-03-26", { prompts: {} }));
+    }
+  });
+  const client = new McpClient(
+    { name: "p", transport: "stdio", command: "x" },
+    { transport },
+  );
+  await client.connect();
+  assert.equal(client.protocolVersion, "2025-03-26");
+  assert.deepEqual(await client.listTools(), []);
+  const methods = transport.sent.map((m) =>
+    "method" in m ? m.method : "response",
+  );
+  assert.deepEqual(methods, ["initialize", "notifications/initialized"]);
+});
+
+test("таймаут запроса — notifications/cancelled серверу", async () => {
+  const transport = memoryTransport((m, reply) => {
+    if ("id" in m && "method" in m && m.method === "initialize")
+      reply(initResult(m.id, "2025-06-18"));
+    // tools/call никогда не отвечает
+  });
+  const client = new McpClient(
+    { name: "slow", transport: "stdio", command: "x" },
+    { transport, requestTimeoutMs: 30 },
+  );
+  await client.connect();
+  await assert.rejects(client.callTool("slow", {}), /таймаут tools\/call/);
+  const cancel = transport.sent.find(
+    (m) => "method" in m && m.method === "notifications/cancelled",
+  );
+  const call = transport.sent.find(
+    (m) => "method" in m && m.method === "tools/call",
+  );
+  assert.ok(cancel && call && "id" in call);
+  assert.deepEqual((cancel as { params: unknown }).params, {
+    requestId: call.id,
+    reason: "timeout",
+  });
+});
+
+test("http: 404 по старой сессии — новый initialize и повтор запроса", async () => {
+  let session = "s1";
+  const methods: string[] = [];
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    if (init?.method === "DELETE") return new Response(null, { status: 204 });
+    const headers = new Headers(init?.headers);
+    const message = JSON.parse(String(init?.body)) as JsonRpcMessage;
+    const method = "method" in message ? message.method : "response";
+    methods.push(`${method}@${headers.get("mcp-session-id") ?? "-"}`);
+    if (method === "initialize") {
+      return Response.json(
+        initResult((message as { id: number }).id, "2025-06-18"),
+        {
+          headers: { "mcp-session-id": session },
+        },
+      );
+    }
+    if (method === "notifications/initialized")
+      return new Response(null, { status: 202 });
+    if (headers.get("mcp-session-id") === "s1") {
+      session = "s2"; // сервер перезапустился и забыл s1
+      return new Response("unknown session", { status: 404 });
+    }
+    return Response.json({
+      jsonrpc: "2.0",
+      id: (message as { id: number }).id,
+      result: { content: [{ type: "text", text: "ok" }] },
+    });
+  };
+  const client = new McpClient(
+    { name: "h", transport: "http", url: "http://mcp" },
+    { transport: new HttpTransport({ url: "http://mcp", fetchImpl }) },
+  );
+  await client.connect();
+  assert.equal(await client.callTool("x", {}), "ok");
+  assert.deepEqual(methods, [
+    "initialize@-",
+    "notifications/initialized@s1",
+    "tools/call@s1",
+    "initialize@-",
+    "notifications/initialized@s2",
+    "tools/call@s2",
+  ]);
+  await client.close();
 });

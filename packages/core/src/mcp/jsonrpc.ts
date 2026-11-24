@@ -96,6 +96,11 @@ export class JsonRpcPeer {
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
+        // MCP: о брошенном запросе сообщаем серверу, чтобы он прекратил работу
+        void this.notify("notifications/cancelled", {
+          requestId: id,
+          reason: "timeout",
+        }).catch(() => undefined);
         reject(new Error(`MCP: таймаут ${method} (${timeoutMs} мс)`));
       }, timeoutMs);
       this.pending.set(id, {

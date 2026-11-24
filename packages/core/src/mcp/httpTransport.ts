@@ -1,5 +1,13 @@
 import type { JsonRpcMessage, Transport } from "./jsonrpc";
 
+/** Сервер забыл сессию (HTTP 404 на запрос с Mcp-Session-Id) — нужен новый initialize. */
+export class McpSessionExpiredError extends Error {
+  constructor() {
+    super("MCP: сессия истекла на сервере");
+    this.name = "McpSessionExpiredError";
+  }
+}
+
 export interface HttpTransportOptions {
   url: string;
   headers?: Record<string, string>;
@@ -31,6 +39,7 @@ export class HttpTransport implements Transport {
   }
 
   async send(message: JsonRpcMessage): Promise<void> {
+    const sentWithSession = this.sessionId !== undefined;
     const response = await this.fetchImpl(this.options.url, {
       method: "POST",
       headers: this.headers({
@@ -45,6 +54,10 @@ export class HttpTransport implements Transport {
     if (sessionId) this.sessionId = sessionId;
 
     if (response.status === 202 || response.status === 204) return;
+    if (response.status === 404 && sentWithSession) {
+      this.sessionId = undefined;
+      throw new McpSessionExpiredError();
+    }
     if (!response.ok) {
       const text = await response.text().catch(() => "");
       throw new Error(`MCP HTTP ${response.status}: ${text.slice(0, 300)}`);

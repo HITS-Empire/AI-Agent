@@ -6,6 +6,7 @@ import {
   UsageMeter,
   noopTracer,
   tracedClient,
+  mcpToolName,
   registerMcpTools,
   runAgent,
   type ChatMessage,
@@ -132,9 +133,11 @@ export class AgentRuntime {
   async connectMcp(servers: McpServerConfig[]): Promise<string[]> {
     const names: string[] = [];
     for (const server of servers) {
-      const client = new McpClient(server, {
+      const client: McpClient = new McpClient(server, {
         onLog: (line) =>
           this.log("info", { mcp: server.name }, line.slice(0, 500)),
+        // сервер изменил набор инструментов — перерегистрируем его инструменты
+        onToolsChanged: () => void this.refreshMcpTools(client),
       });
       try {
         await client.connect();
@@ -150,6 +153,26 @@ export class AgentRuntime {
       }
     }
     return names;
+  }
+
+  private async refreshMcpTools(client: McpClient): Promise<void> {
+    const prefix = mcpToolName(client.name, "");
+    for (const name of this.deps.tools.names())
+      if (name.startsWith(prefix)) this.deps.tools.unregister(name);
+    try {
+      const names = await registerMcpTools(client, this.deps.tools);
+      this.log(
+        "info",
+        { mcp: client.name, tools: names.length },
+        "MCP: инструменты обновлены",
+      );
+    } catch (error) {
+      this.log(
+        "warn",
+        { mcp: client.name, error: String(error) },
+        "MCP: не удалось обновить инструменты",
+      );
+    }
   }
 
   async close(): Promise<void> {

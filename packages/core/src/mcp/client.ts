@@ -1,7 +1,7 @@
 import type { JsonSchema } from "../llm/types";
 import type { ToolRegistry } from "../tools/registry";
 import type { Tool } from "../tools/types";
-import { HttpTransport } from "./httpTransport";
+import { HttpTransport, McpSessionExpiredError } from "./httpTransport";
 import { JsonRpcPeer, type Transport } from "./jsonrpc";
 import { StdioTransport } from "./stdioTransport";
 
@@ -11,6 +11,8 @@ import { StdioTransport } from "./stdioTransport";
  * Спецификация: https://modelcontextprotocol.io/specification
  */
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
+/** Версии, с которыми клиент умеет работать (Streamable HTTP появился в 2025-03-26). */
+export const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 
 export type McpServerConfig =
   | {
@@ -54,6 +56,8 @@ export interface McpClientOptions {
   clientVersion?: string;
   requestTimeoutMs?: number;
   onLog?: (line: string) => void;
+  /** Сервер сообщил, что список инструментов изменился. */
+  onToolsChanged?: () => void;
   /** Подмена транспорта в тестах. */
   transport?: Transport;
 }
@@ -64,6 +68,7 @@ export class McpClient {
   private readonly transport: Transport;
   serverInfo?: { name: string; version?: string };
   protocolVersion?: string;
+  capabilities?: Record<string, unknown>;
 
   constructor(
     readonly config: McpServerConfig,
@@ -75,12 +80,19 @@ export class McpClient {
       if (method === "notifications/message") {
         options.onLog?.(`[mcp ${config.name}] ${JSON.stringify(params)}`);
       }
+      if (method === "notifications/tools/list_changed") {
+        options.onToolsChanged?.();
+      }
     });
   }
 
-  /** initialize → notifications/initialized */
+  /** initialize → проверка версии → notifications/initialized */
   async connect(): Promise<void> {
     await this.peer.start();
+    await this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
     const result = await this.peer.request<{
       protocolVersion: string;
       serverInfo?: { name: string; version?: string };
@@ -97,17 +109,42 @@ export class McpClient {
       },
       this.options.requestTimeoutMs,
     );
+    if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
+      // спецификация: если версия сервера не поддерживается — отключиться
+      await this.peer.close().catch(() => undefined);
+      throw new Error(
+        `MCP ${this.name}: версия протокола сервера ${result.protocolVersion} не поддерживается (умеем ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")})`,
+      );
+    }
     this.protocolVersion = result.protocolVersion;
     this.serverInfo = result.serverInfo;
+    this.capabilities = result.capabilities;
     this.transport.setProtocolVersion?.(result.protocolVersion);
     await this.peer.notify("notifications/initialized");
   }
 
+  /** Запрос с одним повтором после нового initialize, если HTTP-сервер забыл сессию. */
+  private async requestWithSession<T>(
+    method: string,
+    params: unknown,
+    timeoutMs?: number,
+  ): Promise<T> {
+    try {
+      return await this.peer.request<T>(method, params, timeoutMs);
+    } catch (error) {
+      if (!(error instanceof McpSessionExpiredError)) throw error;
+      await this.initialize();
+      return this.peer.request<T>(method, params, timeoutMs);
+    }
+  }
+
   async listTools(): Promise<McpToolInfo[]> {
+    // инструменты есть, только если сервер объявил capability tools
+    if (this.capabilities && !("tools" in this.capabilities)) return [];
     const tools: McpToolInfo[] = [];
     let cursor: string | undefined;
     do {
-      const page = await this.peer.request<{
+      const page = await this.requestWithSession<{
         tools: Array<{
           name: string;
           description?: string;
@@ -129,7 +166,7 @@ export class McpClient {
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {
-    const result = await this.peer.request<McpCallResult>(
+    const result = await this.requestWithSession<McpCallResult>(
       "tools/call",
       { name, arguments: args },
       this.options.requestTimeoutMs ?? 120_000,
