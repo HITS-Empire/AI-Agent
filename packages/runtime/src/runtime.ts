@@ -116,6 +116,7 @@ export interface TaskResult {
 export class AgentRuntime {
   private readonly locks = new Map<string, Promise<unknown>>();
   private readonly mcpClients: McpClient[] = [];
+  private readonly warned = new Set<string>();
 
   constructor(private readonly deps: RuntimeDeps) {}
 
@@ -389,11 +390,16 @@ export class AgentRuntime {
     try {
       return (await fn()) ?? fallback;
     } catch (error) {
-      this.log(
-        "warn",
-        { part: what, error: String(error) },
-        `${what}: пропущено`,
-      );
+      // одно и то же предупреждение (например, «не реализовано») — один раз за процесс
+      const key = `${what}:${String(error)}`;
+      if (!this.warned.has(key)) {
+        this.warned.add(key);
+        this.log(
+          "warn",
+          { part: what, error: String(error) },
+          `${what}: пропущено`,
+        );
+      }
       return fallback;
     }
   }
