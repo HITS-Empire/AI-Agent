@@ -1,0 +1,34 @@
+{
+  "name": "burmalda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "«бурмалда» — персональный ИИ-ассистент: самописное ядро агента и harness",
+  "type": "module",
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "tsc -p tsconfig.json --noEmit && eslint . && prettier --check .",
+    "dev:worker": "pnpm --filter @burmalda/worker dev",
+    "dev:cli": "pnpm --filter @burmalda/cli dev",
+    "dev:telegram": "pnpm --filter @burmalda/telegram dev",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "sandbox:build": "docker compose --profile sandbox build sandbox"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.74.0"
+  }
+}

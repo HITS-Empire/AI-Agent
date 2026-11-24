@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+build/
+*.tsbuildinfo
+
+# env & secrets — никогда не коммитим
+.env
+.env.*
+!.env.example
+.secrets/
+
+# runtime data
+data/
+logs/
+*.log
+
+# misc
+.DS_Store
+.idea/
+coverage/

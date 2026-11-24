@@ -1,0 +1,77 @@
+# LiteLLM Proxy — единственная точка всех вызовов моделей «бурмалды».
+# Приложение обращается только к алиасам burmalda-*; провайдеры меняются здесь, а не в коде.
+#
+# Основной провайдер — подписка ChatGPT (Codex) через провайдер `chatgpt/`:
+#   https://docs.litellm.ai/docs/providers/chatgpt
+# Токены лежат в ./.secrets/chatgpt/auth.json (gitignore), логин — см. README, «Вход в ChatGPT».
+# Это ОТДЕЛЬНЫЙ логин, не ~/.codex/auth.json: refresh-токен одноразовый, общий файл сломал бы Codex CLI.
+
+model_list:
+  # Основная модель агента
+  - model_name: burmalda-main
+    litellm_params:
+      model: chatgpt/gpt-6.2-sol
+    model_info:
+      mode: chat
+      # Условная цена: у chatgpt/ нет цены в cost map, без неё spend = $0 и бюджеты не срабатывают.
+      # Это «внутренние доллары» для учёта и лимитов, а не реальные деньги.
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000008
+
+  # Дешёвая модель: compaction, извлечение фактов в память, маршрутизация
+  - model_name: burmalda-fast
+    litellm_params:
+      model: chatgpt/gpt-6.1-terra
+    model_info:
+      mode: chat
+      input_cost_per_token: 0.0000005
+      output_cost_per_token: 0.000002
+
+  # Эмбеддинги для долговременной памяти — локально через Ollama (подписка ChatGPT эмбеддинги не даёт)
+  - model_name: burmalda-embed
+    litellm_params:
+      model: ollama/bge-m3
+      api_base: http://ollama:11434
+    model_info:
+      mode: embedding
+      input_cost_per_token: 0
+
+  # Модель-заглушка без токенов: для разработки и e2e-тестов без подписки (участник B, CI).
+  # Шлюз отвечает фиксированным текстом и не ходит к провайдеру; учёт, ключи и логи работают как обычно.
+  # Сценарии с tool calling тестируются в коде через FakeLlmClient (packages/core/src/llm/fakeClient.ts).
+  - model_name: burmalda-mock
+    litellm_params:
+      model: openai/burmalda-mock
+      api_key: mock-no-key
+      mock_response: "бурмалда: ответ модели-заглушки"
+    model_info:
+      mode: chat
+
+  # --- Резерв (платный, по умолчанию выключен). Раскомментировать и задать ключ в .env ---
+  # - model_name: burmalda-main-fallback
+  #   litellm_params:
+  #     model: openrouter/openai/gpt-6.1-sol
+  #     api_key: os.environ/OPENROUTER_API_KEY
+  # - model_name: burmalda-main-fallback
+  #   litellm_params:
+  #     model: openai/gpt-6.1-sol
+  #     api_key: os.environ/OPENAI_API_KEY
+
+router_settings:
+  num_retries: 2
+  timeout: 300
+  # fallbacks:
+  #   - burmalda-main: ["burmalda-main-fallback"]
+
+litellm_settings:
+  # Трассировка каждого вызова модели в Phoenix (OpenInference)
+  callbacks: ["arize_phoenix"]
+  drop_params: true
+  # Глобальный потолок в «условных долларах» (см. цены выше); лимиты на ключи — через /key/generate
+  max_budget: 50
+  budget_duration: 30d
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  store_prompts_in_spend_logs: true

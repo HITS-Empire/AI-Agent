@@ -1,0 +1,17 @@
+{
+  "name": "@burmalda/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "start": "tsx --env-file-if-exists=../../.env src/main.ts"
+  },
+  "dependencies": {
+    "@burmalda/core": "workspace:*",
+    "@burmalda/memory": "workspace:*",
+    "@burmalda/queue": "workspace:*",
+    "@burmalda/sandbox": "workspace:*",
+    "@burmalda/shared": "workspace:*"
+  }
+}

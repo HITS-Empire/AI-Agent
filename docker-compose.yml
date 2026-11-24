@@ -1,0 +1,117 @@
+name: burmalda
+
+# Локальная инфраструктура. Приложения (worker, cli, telegram) в dev запускаются на хосте через pnpm.
+# Все порты слушают только 127.0.0.1.
+
+services:
+  postgres:
+    image: pgvector/pgvector:${PGVECTOR_TAG:-pg17}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-burmalda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-burmalda}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-burmalda}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # LLM-шлюз: учёт токенов, бюджеты, маршрутизация, логирование. Admin UI: http://localhost:4000/ui
+  litellm:
+    image: docker.litellm.ai/berriai/litellm:${LITELLM_TAG:-latest}
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?задай LITELLM_MASTER_KEY в .env}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?задай LITELLM_SALT_KEY в .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-burmalda}:${POSTGRES_PASSWORD:-burmalda}@postgres:5432/litellm
+      CHATGPT_TOKEN_DIR: /tokens/chatgpt
+      LITELLM_OTEL_V2: "true"
+      PHOENIX_COLLECTOR_HTTP_ENDPOINT: http://phoenix:6006/v1/traces
+      PHOENIX_PROJECT_NAME: burmalda-gateway
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "127.0.0.1:${LITELLM_PORT:-4000}:4000"
+    volumes:
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro
+      # Должен быть доступен на запись: шлюз сам обновляет токены
+      - ./.secrets/chatgpt:/tokens/chatgpt
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Трассировка (OpenTelemetry / OpenInference): http://localhost:6006
+  phoenix:
+    image: arizephoenix/phoenix:${PHOENIX_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PHOENIX_PORT:-6006}:6006"
+      - "127.0.0.1:${PHOENIX_GRPC_PORT:-4317}:4317"
+    volumes:
+      - phoenix-data:/mnt/data
+    environment:
+      PHOENIX_WORKING_DIR: /mnt/data
+
+  # Локальные эмбеддинги для памяти (через шлюз как burmalda-embed). Модель: docker compose exec ollama ollama pull bge-m3
+  ollama:
+    image: ollama/ollama:${OLLAMA_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  # Личный календарь: свой CalDAV-сервер. http://localhost:5232
+  radicale:
+    image: tomsquest/docker-radicale:${RADICALE_TAG:-3.9.2.0}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RADICALE_PORT:-5232}:5232"
+    volumes:
+      - ./infra/radicale/config:/config/config:ro
+      - ./.secrets/radicale:/secrets:ro
+      - radicale-data:/data
+
+  # Образ песочницы. Контейнеры сессий создаёт worker (docker run/exec), тут только сборка и ручная проверка.
+  sandbox:
+    profiles: ["sandbox"]
+    build: ./infra/sandbox
+    image: burmalda-sandbox:local
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
+
+volumes:
+  postgres-data:
+  redis-data:
+  phoenix-data:
+  ollama-data:
+  radicale-data:
