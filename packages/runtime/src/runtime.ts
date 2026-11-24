@@ -66,6 +66,8 @@ export interface RuntimeDeps {
     messages: ChatMessage[],
     known: string[],
     sessionId: string,
+    /** Клиент с учётом расхода: токены извлечения тоже попадают в журнал. */
+    llm: LlmClient,
   ) => Promise<string[]>;
   /** AGENTS.md и скиллы (часть B). Ошибки не роняют задачу. */
   instructions?: () => Promise<Array<{ path: string; content: string }>>;
@@ -327,7 +329,7 @@ export class AgentRuntime {
       const newMessages = messages
         .slice(Math.max(firstNew, 1))
         .filter((m) => m.role !== "system");
-      const background = this.learn(input, newMessages, knownFacts);
+      const background = this.learn(input, taskId, newMessages, knownFacts);
 
       return {
         taskId,
@@ -358,13 +360,16 @@ export class AgentRuntime {
 
   private async learn(
     input: TaskInput,
+    taskId: string,
     messages: ChatMessage[],
     known: string[],
   ): Promise<void> {
     const { extractFacts, facts } = this.deps;
     if (!extractFacts || !facts) return;
+    const meter = new UsageMeter();
+    const llm = meteredClient(this.deps.llm, meter);
     try {
-      const found = await extractFacts(messages, known, input.sessionId);
+      const found = await extractFacts(messages, known, input.sessionId, llm);
       for (const fact of found)
         await facts.remember(input.ownerId, fact, [], "extract");
       if (found.length)
@@ -379,6 +384,17 @@ export class AgentRuntime {
         { error: String(error) },
         "извлечение фактов не удалось",
       );
+    } finally {
+      if (meter.models().length)
+        await this.safe(
+          "usage",
+          () =>
+            this.deps.usageStore?.record(
+              { sessionId: input.sessionId, taskId, channel: input.channel },
+              meter.models(),
+            ),
+          undefined,
+        );
     }
   }
 
@@ -457,4 +473,15 @@ export class InMemorySessionStore implements SessionStore {
     session.summary = summary;
     return removed;
   }
+}
+
+/** Обёртка, которая записывает расход каждого вызова в UsageMeter. */
+export function meteredClient(llm: LlmClient, meter: UsageMeter): LlmClient {
+  return {
+    async chat(request, signal) {
+      const response = await llm.chat(request, signal);
+      meter.record(request.model, response);
+      return response;
+    },
+  };
 }

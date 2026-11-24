@@ -107,9 +107,9 @@ export async function createRuntimeFromConfig(
     tracer: tracing?.tracer ?? noopTracer,
     instructions: () => collectAgentsMd(workspace, workspace),
     skills: () => discoverSkills([resolve(root, "skills")]),
-    extractFacts: (messages, known, sessionId) =>
+    extractFacts: (messages, known, sessionId, llm) =>
       extractFacts({
-        llm: gateway,
+        llm,
         model: config.gateway.models.fast,
         messages,
         known,

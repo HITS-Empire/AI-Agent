@@ -217,15 +217,22 @@ test("задачи одной сессии выполняются по очер�
 
 test("фоновое извлечение фактов сохраняет новые факты", async () => {
   const seen: ChatMessage[][] = [];
-  const llm = new FakeLlmClient([{ text: "Учту." }]);
-  const { runtime, facts } = setup(llm, {
-    extractFacts: async (messages) => {
+  const llm = new FakeLlmClient([
+    { text: "Учту." },
+    { text: "[]", usage: { prompt_tokens: 50, completion_tokens: 2 } },
+  ]);
+  const { runtime, facts, usage } = setup(llm, {
+    extractFacts: async (messages, _known, _session, metered) => {
       seen.push(messages);
+      await metered.chat({ model: "burmalda-fast", messages: [] });
       return ["Владелец учится в ТГУ"];
     },
   });
   const result = await runtime.run(task("Я учусь в ТГУ"));
   await result.background;
+  // расход извлечения записан отдельной строкой журнала
+  assert.equal(usage.length, 2);
+  assert.equal(usage[1]![0]![0], "burmalda-fast");
   assert.deepEqual(
     seen[0]!.map((m) => m.role),
     ["user", "assistant"],
