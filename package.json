@@ -22,7 +22,8 @@
     "infra:logs": "docker compose logs -f",
     "sandbox:build": "docker compose --profile sandbox build sandbox",
     "test": "tsx --test \"packages/*/src/**/*.test.ts\" \"apps/*/src/**/*.test.ts\"",
-    "check:core-deps": "node scripts/check-core-deps.mjs"
+    "check:core-deps": "node scripts/check-core-deps.mjs",
+    "check:budget": "tsx --env-file=.env scripts/check-budget.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

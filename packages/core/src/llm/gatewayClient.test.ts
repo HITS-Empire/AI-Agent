@@ -146,3 +146,40 @@ test("keyInfo: читает расход и бюджет ключа", async () =
   assert.equal(info.spend, 1.5);
   assert.equal(info.maxBudget, 20);
 });
+
+test("превышение бюджета (422 budget_exceeded) — понятная ошибка без повторов", async () => {
+  let calls = 0;
+  const client = new GatewayClient({
+    baseUrl: "http://gw",
+    apiKey: "k",
+    retryBaseMs: 1,
+    fetchImpl: async () => {
+      calls++;
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "Budget has been exceeded! Current cost: 0.0008, Max budget: 0.0005",
+            type: "budget_exceeded",
+            code: "400",
+          },
+        }),
+        { status: 422 },
+      );
+    },
+  });
+  await assert.rejects(
+    client.chat({
+      model: "burmalda-fast",
+      messages: [{ role: "user", content: "x" }],
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof GatewayError);
+      assert.equal(error.code, "budget_exceeded");
+      assert.equal(error.retryable, false);
+      assert.match(error.message, /Бюджет ключа шлюза исчерпан/);
+      return true;
+    },
+  );
+  assert.equal(calls, 1);
+});

@@ -23,6 +23,8 @@ export class GatewayError extends Error {
     message: string,
     readonly status?: number,
     readonly retryable = false,
+    /** Тип ошибки LiteLLM: budget_exceeded, auth_error, … */
+    readonly code?: string,
   ) {
     super(message);
     this.name = "GatewayError";
@@ -135,12 +137,7 @@ export class GatewayClient implements LlmClient, EmbeddingClient {
         });
 
         if (!response.ok) {
-          const text = await response.text();
-          throw new GatewayError(
-            `Шлюз вернул ${response.status}: ${text.slice(0, 500)}`,
-            response.status,
-            RETRYABLE_STATUSES.has(response.status),
-          );
+          throw gatewayError(response.status, await response.text());
         }
 
         const cost = Number(response.headers.get("x-litellm-response-cost"));
@@ -169,6 +166,38 @@ export class GatewayClient implements LlmClient, EmbeddingClient {
     const timeout = AbortSignal.timeout(this.options.timeoutMs ?? 300_000);
     return signal ? AbortSignal.any([signal, timeout]) : timeout;
   }
+}
+
+/** Разбор ошибки LiteLLM ({"error": {"message", "type", "code"}}) в GatewayError. */
+export function gatewayError(status: number, text: string): GatewayError {
+  let message = text.slice(0, 500);
+  let code: string | undefined;
+  try {
+    const body = JSON.parse(text) as {
+      error?: { message?: string; type?: string; code?: string | number };
+    };
+    if (body.error?.message) message = body.error.message.slice(0, 500);
+    code =
+      body.error?.type ??
+      (body.error?.code ? String(body.error.code) : undefined);
+  } catch {
+    // не JSON — оставляем текст как есть
+  }
+  if (code === "budget_exceeded") {
+    // бюджет — жёсткий отказ шлюза, повторять бессмысленно
+    return new GatewayError(
+      `Бюджет ключа шлюза исчерпан: ${message}`,
+      status,
+      false,
+      code,
+    );
+  }
+  return new GatewayError(
+    `Шлюз вернул ${status}: ${message}`,
+    status,
+    RETRYABLE_STATUSES.has(status),
+    code,
+  );
 }
 
 function isRetryable(error: unknown): boolean {
