@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "tsc -p tsconfig.json --noEmit && eslint . && prettier --check . && tsx --test \"packages/*/src/**/*.test.ts\" \"apps/*/src/**/*.test.ts\"",
+    "check": "node scripts/check-core-deps.mjs && tsc -p tsconfig.json --noEmit && eslint . && prettier --check . && tsx --test \"packages/*/src/**/*.test.ts\" \"apps/*/src/**/*.test.ts\"",
     "dev:worker": "pnpm --filter @burmalda/worker dev",
     "dev:cli": "pnpm --filter @burmalda/cli dev",
     "dev:telegram": "pnpm --filter @burmalda/telegram dev",
@@ -21,7 +21,8 @@
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",
     "sandbox:build": "docker compose --profile sandbox build sandbox",
-    "test": "tsx --test \"packages/*/src/**/*.test.ts\" \"apps/*/src/**/*.test.ts\""
+    "test": "tsx --test \"packages/*/src/**/*.test.ts\" \"apps/*/src/**/*.test.ts\"",
+    "check:core-deps": "node scripts/check-core-deps.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

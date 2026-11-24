@@ -1,4 +1,4 @@
-import { notImplemented } from "@burmalda/shared";
+import { notImplemented } from "../errors";
 
 export interface SkillMeta {
   name: string;

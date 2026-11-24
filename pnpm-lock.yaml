@@ -78,11 +78,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
 
-  packages/core:
-    dependencies:
-      '@burmalda/shared':
-        specifier: workspace:*
-        version: link:../shared
+  packages/core: {}
 
   packages/integrations:
     dependencies:

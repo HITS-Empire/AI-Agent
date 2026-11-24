@@ -8,6 +8,19 @@ export default tseslint.config(
     ignores: ["data", "dist", "build", "node_modules", "**/dist", ".secrets"],
   },
   {
+    // Скрипты и сервисы на чистом JS (Node 22)
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        URL: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
+    },
+  },
+  {
     rules: {
       "no-empty": "warn",
       "no-async-promise-executor": "warn",
@@ -22,7 +35,7 @@ export default tseslint.config(
     },
   },
   {
-    // Ядро по заданию пишется без библиотек: только node:*, свои модули и @burmalda/shared
+    // Ядро по заданию пишется без библиотек: только node:* и свои модули (даже @burmalda/shared нельзя — он тянет pino)
     files: ["packages/core/src/**/*.ts"],
     rules: {
       "no-restricted-imports": [
@@ -30,7 +43,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(?!node:|@burmalda/shared$|\\.{1,2}/)",
+              regex: "^(?!node:|\\.{1,2}/)",
               message:
                 "packages/core — без внешних библиотек (условие лабы). Вынеси зависимость в harness-пакет.",
             },

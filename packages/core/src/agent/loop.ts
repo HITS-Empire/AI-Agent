@@ -1,4 +1,3 @@
-import type { TokenUsage } from "@burmalda/shared";
 import type { ChatMessage, ChatResponse, LlmClient } from "../llm/types";
 import { UsageMeter } from "../llm/usage";
 import {
@@ -55,6 +54,13 @@ export type AgentLoopEvent =
       costUsd?: number;
       latencyMs?: number;
     };
+
+/** Совпадает по форме с TokenUsage из @burmalda/shared (у ядра нет зависимостей). */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
 
 export interface AgentRunResult {
   finalText: string;
