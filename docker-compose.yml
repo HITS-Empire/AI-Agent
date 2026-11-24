@@ -41,6 +41,18 @@ services:
   litellm:
     image: ${LITELLM_IMAGE:-docker.litellm.ai/berriai/litellm}:${LITELLM_TAG:-latest}
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as u; u.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5)",
+        ]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 30s
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?задай LITELLM_MASTER_KEY в .env}
@@ -66,6 +78,18 @@ services:
   phoenix:
     image: arizephoenix/phoenix:${PHOENIX_TAG:-latest}
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as u; u.urlopen('http://127.0.0.1:6006/healthz', timeout=5)",
+        ]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 30s
     ports:
       - "127.0.0.1:${PHOENIX_PORT:-6006}:6006"
       - "127.0.0.1:${PHOENIX_GRPC_PORT:-4317}:4317"
@@ -80,6 +104,12 @@ services:
   ollama:
     image: ollama/ollama:${OLLAMA_TAG:-latest}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 30s
     # Порт наружу не публикуется: эмбеддинги доступны только через шлюз (burmalda-embed), обход LiteLLM невозможен
     volumes:
       - ollama-data:/root/.ollama
@@ -101,6 +131,18 @@ services:
     build: ./infra/browser
     image: burmalda-browser:local
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 30s
     ports:
       - "127.0.0.1:${BROWSER_PORT:-3100}:3100"
     environment:
