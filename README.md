@@ -76,6 +76,14 @@ pnpm dev:worker            # worker с циклом агента (очередь
 pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и TELEGRAM_OWNER_ID)
 ```
 
+### GitHub (MCP)
+
+Агент читает GitHub через официальный удалённый MCP-сервер GitHub (`config/mcp.json`) в режиме только чтения
+(`X-MCP-Readonly: true`). Нужен fine-grained токен: https://github.com/settings/personal-access-tokens →
+нужные репозитории, права **только Read**: Contents, Issues, Pull requests, Actions (Metadata добавится сам).
+Токен — в `GITHUB_TOKEN` в `.env`. Без токена сервер пропускается, остальное работает.
+Локальная альтернатива — сервер `github-local` в Docker (тоже read-only), включается снятием `disabled`.
+
 ## Где смотреть
 
 | Что                                      | Адрес                    |
