@@ -26,6 +26,13 @@ pnpm infra:up                   # postgres+pgvector, redis, litellm, phoenix, ol
 docker compose exec ollama ollama pull bge-m3   # модель эмбеддингов для памяти
 ```
 
+Если что-то не стартует:
+
+- `docker: command not found` после установки OrbStack — старая ссылка `/usr/local/bin/docker` от Docker Desktop.
+  Удалить её или добавить в PATH `/Applications/OrbStack.app/Contents/MacOS/xbin`; вместо `docker compose` подойдёт `docker-compose`.
+- Порт 5432 занят локальным PostgreSQL — в `.env` задать `POSTGRES_PORT=5433` и поправить порт в `DATABASE_URL`.
+- `docker.litellm.ai` отвечает 502 — взять образ с GitHub: `LITELLM_IMAGE=ghcr.io/berriai/litellm`, `LITELLM_TAG=main-stable`.
+
 ### Вход в ChatGPT для шлюза (один раз)
 
 LiteLLM ходит в модели по подписке ChatGPT через провайдер `chatgpt/` ([документация](https://docs.litellm.ai/docs/providers/chatgpt)).
@@ -64,7 +71,7 @@ curl -s http://127.0.0.1:4000/key/generate \
 ### Запуск
 
 ```bash
-pnpm dev:cli -- --direct   # проверка ядра и шлюза: цикл агента прямо в CLI
+pnpm dev:cli -- --direct   # рантайм агента прямо в CLI: память, compaction, инструменты; /usage — расход
 pnpm dev:worker            # worker с циклом агента (очередь)
 pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и TELEGRAM_OWNER_ID)
 ```
@@ -80,5 +87,9 @@ pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и T
 ## Проверки
 
 ```bash
-pnpm check   # typecheck + eslint + prettier
+pnpm check   # typecheck + eslint + prettier + тесты
+pnpm test    # только тесты (node:test, сценарии на FakeLlmClient, без токенов)
+
+# интеграционные тесты на живых Postgres и Redis из compose
+TEST_DATABASE_URL="$DATABASE_URL" TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm test
 ```
