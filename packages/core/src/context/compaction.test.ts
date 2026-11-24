@@ -157,3 +157,18 @@ test("renderTranscript урезает длинные результаты", () =
   );
   assert.ok(text.length < 200);
 });
+
+test("оценка учитывает невидимую часть запроса, пока нет точной цифры", () => {
+  const messages = [{ role: "user" as const, content: "x".repeat(300) }];
+  const base = contextTokens(messages);
+  assert.equal(contextTokens(messages, undefined, 1700), base + 1700);
+  // с точной цифрой от шлюза надбавка не нужна — она уже внутри prompt_tokens
+  assert.equal(
+    contextTokens(
+      messages,
+      { step: 2, lastPromptTokens: 5000, messagesAtLastRequest: 1 },
+      1700,
+    ),
+    5000,
+  );
+});

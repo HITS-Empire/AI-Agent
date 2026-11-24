@@ -74,7 +74,12 @@ export interface RuntimeDeps {
   skills?: () => Promise<
     Array<{ name: string; description: string; path: string }>
   >;
-  context: { window: number; compactAt: number };
+  context: {
+    window: number;
+    compactAt: number;
+    /** Скрытые инструкции провайдера в каждом запросе (chatgpt/ — ~1600 токенов). */
+    providerOverheadTokens?: number;
+  };
   tracer?: Tracer;
   log?: (
     level: "info" | "warn" | "error",
@@ -221,6 +226,9 @@ export class AgentRuntime {
         model: deps.models.fast,
         contextWindow: deps.context.window,
         compactAt: deps.context.compactAt,
+        overheadTokens:
+          Math.ceil(JSON.stringify(deps.tools.specs()).length / 3) +
+          (deps.context.providerOverheadTokens ?? 0),
         pinnedHead: 1,
         tracer,
         parentSpan: root,

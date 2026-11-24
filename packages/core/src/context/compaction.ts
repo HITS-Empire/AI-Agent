@@ -22,6 +22,8 @@ export function estimateTokens(messages: ChatMessage[]): number {
 export function contextTokens(
   messages: ChatMessage[],
   info?: StepInfo,
+  /** Невидимая в messages часть запроса (схемы инструментов, инструкции провайдера) — только для оценки. */
+  overheadTokens = 0,
 ): number {
   if (
     info?.lastPromptTokens !== undefined &&
@@ -33,7 +35,7 @@ export function contextTokens(
       estimateTokens(messages.slice(info.messagesAtLastRequest))
     );
   }
-  return estimateTokens(messages);
+  return estimateTokens(messages) + overheadTokens;
 }
 
 export interface CompactionOptions {
@@ -43,6 +45,11 @@ export interface CompactionOptions {
   contextWindow: number;
   /** Доля окна, после которой сжимаем (0.7 = 70%). */
   compactAt: number;
+  /**
+   * Токены запроса, которых нет в messages: схемы инструментов и скрытые инструкции провайдера
+   * (chatgpt/ добавляет ~1,6 тыс.). Учитываются, пока нет точной цифры от шлюза.
+   */
+  overheadTokens?: number;
   /** Сколько последних сообщений оставить дословно (граница сдвигается к ближайшему user). */
   keepRecent?: number;
   /** Сколько первых сообщений не трогать никогда (базовый system prompt). По умолчанию 1. */
@@ -103,7 +110,11 @@ export class ContextManager {
     messages: ChatMessage[],
     info?: StepInfo,
   ): Promise<CompactionResult | null> {
-    const tokensBefore = contextTokens(messages, info);
+    const tokensBefore = contextTokens(
+      messages,
+      info,
+      this.options.overheadTokens ?? 0,
+    );
     if (tokensBefore < this.threshold) return null;
 
     const tracer = this.options.tracer ?? noopTracer;

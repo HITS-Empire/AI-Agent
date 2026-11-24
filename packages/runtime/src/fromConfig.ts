@@ -103,7 +103,12 @@ export async function createRuntimeFromConfig(
     facts: longTerm,
     profile,
     usageStore,
-    context: config.context,
+    context: {
+      ...config.context,
+      providerOverheadTokens: Number(
+        process.env.BURMALDA_PROVIDER_OVERHEAD_TOKENS ?? 1700,
+      ),
+    },
     tracer: tracing?.tracer ?? noopTracer,
     instructions: () => collectAgentsMd(workspace, workspace),
     skills: () => discoverSkills([resolve(root, "skills")]),
