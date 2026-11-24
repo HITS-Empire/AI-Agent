@@ -95,6 +95,26 @@ services:
       - ./.secrets/radicale:/secrets:ro
       - radicale-data:/data
 
+  # Headless Chromium для публичных страниц поиска маркетплейсов (адаптеры integrations/marketplaces).
+  # Только рендер: без входа, без stealth, разрешённые хосты, не чаще раза в MIN_INTERVAL_MS на хост.
+  browser:
+    build: ./infra/browser
+    image: burmalda-browser:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${BROWSER_PORT:-3100}:3100"
+    environment:
+      MIN_INTERVAL_MS: ${BROWSER_MIN_INTERVAL_MS:-10000}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 512
+    mem_limit: 1500m
+    cpus: 1.5
+    init: true
+
   # Образ песочницы. Контейнеры сессий создаёт worker (docker run/exec), тут только сборка и ручная проверка.
   sandbox:
     profiles: ["sandbox"]
