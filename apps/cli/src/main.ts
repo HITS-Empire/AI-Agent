@@ -1,4 +1,4 @@
-import { createInterface } from "node:readline/promises";
+import { createInterface, type Interface } from "node:readline";
 import { stdin, stdout } from "node:process";
 import { resolve } from "node:path";
 import {
@@ -37,11 +37,14 @@ async function main(): Promise<void> {
     root: resolve(import.meta.dirname, "../../.."),
   });
   const rl = createInterface({ input: stdin, output: stdout });
+  const ask = lineReader(rl);
   stdout.write(`  сессия ${sessionId} · /usage — расход · /exit — выход\n\n`);
 
   try {
     for (;;) {
-      const text = (await rl.question(`${PROJECT_NAME}> `)).trim();
+      const line = await ask(`${PROJECT_NAME}> `);
+      if (line === null) break;
+      const text = line.trim();
       if (!text) continue;
       if (text === "/exit") break;
       if (text === "/usage") {
@@ -62,9 +65,8 @@ async function main(): Promise<void> {
                 stdout.write(`  · ${event.text}\n`);
             },
             requestApproval: async (question) =>
-              (await rl.question(`  ? ${question} [y/N] `))
-                .trim()
-                .toLowerCase() === "y",
+              (await ask(`  ? ${question} [y/N] `))?.trim().toLowerCase() ===
+              "y",
           },
         );
         const u = result.usage;
@@ -81,6 +83,35 @@ async function main(): Promise<void> {
     rl.close();
     await bundle.shutdown();
   }
+}
+
+/**
+ * Очередь строк ввода: строки, пришедшие, пока агент думает (или из pipe), не теряются.
+ * null — ввод закончился.
+ */
+function lineReader(rl: Interface): (prompt: string) => Promise<string | null> {
+  const lines: string[] = [];
+  const waiters: Array<(line: string | null) => void> = [];
+  let closed = false;
+  rl.on("line", (line) => {
+    const waiter = waiters.shift();
+    if (waiter) waiter(line);
+    else lines.push(line);
+  });
+  rl.on("close", () => {
+    closed = true;
+    for (const waiter of waiters.splice(0)) waiter(null);
+  });
+  return (prompt) => {
+    const ready = lines.shift();
+    if (ready !== undefined) {
+      stdout.write(`${prompt}${ready}\n`);
+      return Promise.resolve(ready);
+    }
+    if (closed) return Promise.resolve(null);
+    stdout.write(prompt);
+    return new Promise((resolve) => waiters.push(resolve));
+  };
 }
 
 async function usageReport(bundle: RuntimeBundle): Promise<string> {
