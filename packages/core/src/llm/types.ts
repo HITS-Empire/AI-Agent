@@ -31,12 +31,15 @@ export interface ChatRequest {
   temperature?: number;
   /** Атрибуция в шлюзе: попадает в spend logs LiteLLM. */
   user?: string;
+  /** Метаданные для логов LiteLLM (теги, trace id). Провайдеру не уходят. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ChatUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
+  prompt_tokens_details?: { cached_tokens?: number };
 }
 
 export interface ChatResponse {
@@ -52,8 +55,26 @@ export interface ChatResponse {
     };
   }>;
   usage?: ChatUsage;
+  /** Заполняет наш клиент: стоимость из заголовка шлюза, задержка. В ответе провайдера этого поля нет. */
+  meta?: ResponseMeta;
+}
+
+export interface ResponseMeta {
+  /** `x-litellm-response-cost`, в «условных долларах» по ценам из конфига шлюза. */
+  costUsd?: number;
+  latencyMs: number;
+  /** Сколько попыток понадобилось (ретраи на 429/5xx). */
+  attempts: number;
 }
 
 export interface LlmClient {
   chat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResponse>;
+}
+
+export interface EmbeddingClient {
+  embed(
+    input: string[],
+    model: string,
+    signal?: AbortSignal,
+  ): Promise<number[][]>;
 }
