@@ -1,0 +1,45 @@
+<!-- СИНТЕТИЧЕСКАЯ фикстура: собрана вручную по публичной разметке карточек WB
+     (article.product-card[data-nm-id], ins.price__lower-price, del, product-card__brand/__name,
+     address-rate-mini, product-card__count). Вживую выдачу снять не удалось: headless Chromium
+     получает антибот-страницу (см. wildberriesBlocked.html). -->
+<div class="product-card-list">
+  <article id="c111111111" class="product-card j-card-item" data-nm-id="111111111">
+    <div class="product-card__wrapper">
+      <a class="product-card__link j-card-link" href="https://www.wildberries.ru/catalog/111111111/detail.aspx" aria-label="Наушники беспроводные TWS"></a>
+      <div class="product-card__middle-wrap">
+        <p class="product-card__price price">
+          <span class="price__wrap">
+            <ins class="price__lower-price wallet-price">1&nbsp;290&nbsp;₽</ins>
+            <del>3&nbsp;490&nbsp;₽</del>
+          </span>
+        </p>
+        <h2 class="product-card__brand-wrap">
+          <span class="product-card__brand">Acme</span>
+          <span class="product-card__name">/ Наушники беспроводные TWS</span>
+        </h2>
+        <p class="product-card__rating-wrap">
+          <span class="address-rate-mini address-rate-mini--sm">4,7</span>
+          <span class="product-card__count">12&nbsp;345 оценок</span>
+        </p>
+      </div>
+    </div>
+  </article>
+  <article id="c222222222" class="product-card j-card-item" data-nm-id="222222222">
+    <div class="product-card__wrapper">
+      <a class="product-card__link j-card-link" href="https://www.wildberries.ru/catalog/222222222/detail.aspx" aria-label="Наушники проводные"></a>
+      <p class="product-card__price price">
+        <span class="price__wrap"><ins class="price__lower-price">499 ₽</ins></span>
+      </p>
+      <h2 class="product-card__brand-wrap">
+        <span class="product-card__brand">Беta</span>
+        <span class="product-card__name">/ Наушники проводные</span>
+      </h2>
+      <p class="product-card__rating-wrap"><span class="product-card__count">Нет оценок</span></p>
+    </div>
+  </article>
+  <article id="c333333333" class="product-card j-card-item" data-nm-id="333333333">
+    <a class="product-card__link" href="https://www.wildberries.ru/catalog/333333333/detail.aspx" aria-label="Нет в наличии"></a>
+    <span class="product-card__brand">Gamma</span>
+    <span class="product-card__name">/ Нет в наличии</span>
+  </article>
+</div>

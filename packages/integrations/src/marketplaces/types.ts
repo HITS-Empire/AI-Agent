@@ -33,11 +33,14 @@ export interface MarketplaceAdapter {
   search(query: ProductQuery, signal?: AbortSignal): Promise<ProductOffer[]>;
 }
 
+/** captcha — капча или антибот-проверка; forbidden — 403/бан по IP; rate_limited — 429 или наш лимит частоты. */
+export type BlockReason = "captcha" | "forbidden" | "rate_limited";
+
 /** Ошибки, при которых адаптер прекращает работу, а не пытается обойти защиту. */
 export class MarketplaceBlockedError extends Error {
   constructor(
     readonly marketplace: MarketplaceId,
-    reason: "captcha" | "forbidden" | "rate_limited",
+    readonly reason: BlockReason,
   ) {
     super(`${marketplace}: доступ ограничен (${reason})`);
   }

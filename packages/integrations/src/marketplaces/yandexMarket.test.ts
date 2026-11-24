@@ -7,6 +7,7 @@ import {
   parseYandexMarketSearch,
 } from "./yandexMarket";
 import { MarketplaceBlockedError } from "./types";
+import { fixtureRenderer, RenderRateLimitedError } from "./browser";
 
 const fixture = readFileSync(
   new URL("./fixtures/yandexMarketSearch.html", import.meta.url),
@@ -53,7 +54,7 @@ test("URL поиска: фильтры цены и сортировка", () => 
 
 test("адаптер: фильтр по цене, сортировка и лимит поверх выдачи", async () => {
   const adapter = createYandexMarketAdapter({
-    fetchImpl: async () => new Response(fixture, { status: 200 }),
+    renderer: fixtureRenderer(fixture),
     now: () => at,
   });
   const offers = await adapter.search({
@@ -67,13 +68,11 @@ test("адаптер: фильтр по цене, сортировка и лим
   assert.ok(cheap.every((o) => o.price <= 600));
 });
 
-test("капча и 403 — MarketplaceBlockedError, без обхода", async () => {
+test("капча, 403 и лимит частоты — MarketplaceBlockedError, без обхода", async () => {
   const redirect = createYandexMarketAdapter({
-    fetchImpl: async () =>
-      new Response(null, {
-        status: 302,
-        headers: { location: "https://market.yandex.ru/showcaptcha?x" },
-      }),
+    renderer: fixtureRenderer("<html></html>", {
+      finalUrl: "https://market.yandex.ru/showcaptcha?x",
+    }),
   });
   await assert.rejects(redirect.search({ text: "x" }), (e: Error) => {
     assert.ok(e instanceof MarketplaceBlockedError);
@@ -81,12 +80,21 @@ test("капча и 403 — MarketplaceBlockedError, без обхода", async
     return true;
   });
   const page = createYandexMarketAdapter({
-    fetchImpl: async () =>
-      new Response("<html><form action='/checkcaptcha'></form></html>"),
+    renderer: fixtureRenderer(
+      "<html><form action='/checkcaptcha'></form></html>",
+    ),
   });
-  await assert.rejects(page.search({ text: "x" }), MarketplaceBlockedError);
+  await assert.rejects(page.search({ text: "x" }), /captcha/);
   const forbidden = createYandexMarketAdapter({
-    fetchImpl: async () => new Response("", { status: 403 }),
+    renderer: fixtureRenderer("", { status: 403 }),
   });
   await assert.rejects(forbidden.search({ text: "x" }), /forbidden/);
+  const limited = createYandexMarketAdapter({
+    renderer: {
+      render: async () => {
+        throw new RenderRateLimitedError(5000);
+      },
+    },
+  });
+  await assert.rejects(limited.search({ text: "x" }), /rate_limited/);
 });

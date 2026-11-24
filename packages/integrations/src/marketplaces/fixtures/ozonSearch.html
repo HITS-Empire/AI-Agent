@@ -1,0 +1,20 @@
+<!-- СИНТЕТИЧЕСКАЯ фикстура: собрана вручную по структуре плитки выдачи Ozon
+     (widget tileGridDesktop, ссылки /product/<slug>-<sku>/, цены «… ₽», рейтинг и «… отзывов»;
+     классы у Ozon обфусцированы, парсер на них не опирается). Вживую выдачу снять не удалось:
+     headless Chromium получает антибот-страницу (см. ozonBlocked.html). -->
+<div data-widget="tileGridDesktop">
+  <div class="tile-root x1">
+    <a href="/product/naushniki-besprovodnye-acme-1234567890/?at=abc&amp;keywords=x" class="tile-link"><div class="img"></div></a>
+    <div class="t1"><span class="c3">1&nbsp;299&nbsp;₽</span><span class="c4">2&nbsp;999&nbsp;₽</span><span>−56%</span></div>
+    <a href="/product/naushniki-besprovodnye-acme-1234567890/?at=abc" class="tile-link"><div class="tsBody500Medium"><span>Наушники беспроводные Acme Pro, белые</span></div></a>
+    <div class="r1"><span>4.8</span><span>1&nbsp;024 отзыва</span></div>
+  </div>
+  <div class="tile-root x1">
+    <a href="/product/naushniki-provodnye-beta-9876543210/" class="tile-link"><div class="img"></div></a>
+    <div class="t1"><span class="c3">599&nbsp;₽</span></div>
+    <a href="/product/naushniki-provodnye-beta-9876543210/" class="tile-link"><span>Наушники проводные Beta</span></a>
+  </div>
+  <div class="tile-root x1">
+    <a href="/product/bez-ceny-5555555555/" class="tile-link"><span>Товар закончился</span></a>
+  </div>
+</div>

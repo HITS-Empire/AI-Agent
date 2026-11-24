@@ -8,6 +8,7 @@ import {
   noopTracer,
 } from "@burmalda/core";
 import {
+  createBrowserRenderer,
   createMarketplaceAdapter,
   type MarketplaceAdapter,
   type MarketplaceId,
@@ -147,24 +148,28 @@ export async function createRuntimeFromConfig(
   };
 }
 
+const KNOWN_MARKETPLACES: readonly MarketplaceId[] = [
+  "yandex_market",
+  "ozon",
+  "wildberries",
+];
+
 function marketplaceAdapters(
   raw: string | undefined,
   log: Logger,
 ): MarketplaceAdapter[] {
-  const ids = (raw ?? "yandex_market")
+  const renderer = createBrowserRenderer();
+  const ids = (raw ?? KNOWN_MARKETPLACES.join(","))
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean) as MarketplaceId[];
+    .filter(Boolean);
   const adapters: MarketplaceAdapter[] = [];
   for (const id of ids) {
-    try {
-      adapters.push(createMarketplaceAdapter(id));
-    } catch (error) {
-      log.info(
-        { marketplace: id, error: String(error) },
-        "адаптер маркетплейса не готов",
-      );
+    if (!KNOWN_MARKETPLACES.includes(id as MarketplaceId)) {
+      log.warn({ marketplace: id }, "неизвестный маркетплейс в MARKETPLACES");
+      continue;
     }
+    adapters.push(createMarketplaceAdapter(id as MarketplaceId, renderer));
   }
   return adapters;
 }

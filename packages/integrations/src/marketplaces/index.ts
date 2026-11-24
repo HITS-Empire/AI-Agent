@@ -1,4 +1,3 @@
-import { notImplemented } from "@burmalda/shared";
 import type {
   MarketplaceAdapter,
   MarketplaceId,
@@ -6,22 +5,31 @@ import type {
   ProductQuery,
 } from "./types";
 
+import type { PageRenderer } from "./browser";
+import { createBrowserRenderer } from "./browser";
+import { createOzonAdapter } from "./ozon";
+import { createWildberriesAdapter } from "./wildberries";
 import { createYandexMarketAdapter } from "./yandexMarket";
 
 export * from "./types";
+export * from "./browser";
 export * from "./yandexMarket";
+export * from "./ozon";
+export * from "./wildberries";
 
 /**
- * Яндекс Маркет: обычный HTTP-запрос (см. yandexMarket.ts); на капче — MarketplaceBlockedError, без обходов.
- * TODO(B): адаптеры Ozon и Wildberries. Простые HTTP-запросы к их поиску блокируются антиботом
- * (WB — 403, Ozon — 307), поэтому чтение идёт через браузер в песочнице (см. docs/PLAN.md,
- * «Маркетплейсы»). Без входа в аккаунт, с паузами и кэшем; на капче — MarketplaceBlockedError.
+ * Все три площадки читаются одинаково: публичная страница поиска без входа в аккаунт открывается
+ * в headless Chromium отдельного контейнера (infra/browser, сервис `browser` в docker-compose).
+ * Сервис пускает только эти домены, не чаще одной страницы на сайт за BROWSER_MIN_INTERVAL_MS;
+ * инструмент кэширует результат. Капча/антибот/403 → MarketplaceBlockedError, без обходов.
  */
 export function createMarketplaceAdapter(
   id: MarketplaceId,
+  renderer: PageRenderer = createBrowserRenderer(),
 ): MarketplaceAdapter {
-  if (id === "yandex_market") return createYandexMarketAdapter();
-  return notImplemented(`адаптер маркетплейса ${id}`);
+  if (id === "yandex_market") return createYandexMarketAdapter({ renderer });
+  if (id === "ozon") return createOzonAdapter({ renderer });
+  return createWildberriesAdapter({ renderer });
 }
 
 /** Параллельный поиск по нескольким площадкам: недоступная площадка не роняет остальные. */

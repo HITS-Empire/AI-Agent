@@ -1,71 +1,54 @@
 import {
-  MarketplaceBlockedError,
-  type MarketplaceAdapter,
-  type ProductOffer,
-  type ProductQuery,
+  loadSearchPage,
+  createBrowserRenderer,
+  type PageRenderer,
+} from "./browser";
+import type {
+  BlockReason,
+  MarketplaceAdapter,
+  ProductOffer,
+  ProductQuery,
 } from "./types";
+import { decodeEntities, filterAndSort, toNumber } from "./util";
 
 const BASE_URL = "https://market.yandex.ru";
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36";
+const SNIPPET_SELECTOR = '[data-zone-name="productSnippet"]';
 
 export interface YandexMarketOptions {
-  fetchImpl?: typeof fetch;
+  renderer?: PageRenderer;
   baseUrl?: string;
-  timeoutMs?: number;
   now?: () => Date;
 }
 
 /**
- * Яндекс Маркет: обычный GET страницы поиска без входа в аккаунт.
- * Карточки берутся из JSON в атрибуте data-zone-data у сниппетов (`data-zone-name="productSnippet"`);
- * в первой выдаче ~8 карточек, остальные подгружаются скриптом — их не добираем.
- * Капча или 403/429 → MarketplaceBlockedError, никаких обходов (ни решения капчи, ни подмены
- * TLS-отпечатка клиента). Маркет часто отвечает капчей на запросы из Node — тогда площадка
- * честно помечается недоступной, а marketplace_search возвращает результаты остальных.
+ * Яндекс Маркет: публичная страница поиска без входа, открытая в headless Chromium (infra/browser).
+ * Карточки берутся из JSON в атрибуте data-zone-data у сниппетов (`data-zone-name="productSnippet"`).
+ * Капча (showcaptcha/SmartCaptcha) или 403/429 → MarketplaceBlockedError, без обходов.
  */
 export function createYandexMarketAdapter(
   options: YandexMarketOptions = {},
 ): MarketplaceAdapter {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const renderer = options.renderer ?? createBrowserRenderer();
   const baseUrl = options.baseUrl ?? BASE_URL;
   const now = options.now ?? (() => new Date());
 
   return {
     id: "yandex_market",
     async search(query, signal) {
-      const url = buildSearchUrl(query, baseUrl);
-      const timeout = AbortSignal.timeout(options.timeoutMs ?? 20_000);
-      const response = await fetchImpl(url, {
-        redirect: "manual",
-        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-        headers: {
-          "user-agent": USER_AGENT,
-          accept: "text/html,application/xhtml+xml",
-          "accept-language": "ru-RU,ru;q=0.9",
+      const page = await loadSearchPage(
+        renderer,
+        "yandex_market",
+        buildSearchUrl(query, baseUrl),
+        {
+          waitFor: SNIPPET_SELECTOR,
+          blocked: yandexMarketBlock,
         },
-      });
-
-      if (response.status === 429)
-        throw new MarketplaceBlockedError("yandex_market", "rate_limited");
-      if (response.status === 403)
-        throw new MarketplaceBlockedError("yandex_market", "forbidden");
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("location") ?? "";
-        throw new MarketplaceBlockedError(
-          "yandex_market",
-          /captcha/i.test(location) ? "captcha" : "forbidden",
-        );
-      }
-      if (!response.ok)
-        throw new Error(`yandex_market: HTTP ${response.status}`);
-
-      const html = await response.text();
-      if (isCaptchaPage(html))
-        throw new MarketplaceBlockedError("yandex_market", "captcha");
-
-      const offers = parseYandexMarketSearch(html, baseUrl, now());
-      return filterAndSort(offers, query);
+        signal,
+      );
+      return filterAndSort(
+        parseYandexMarketSearch(page.html, baseUrl, now()),
+        query,
+      );
     },
   };
 }
@@ -87,6 +70,25 @@ export function buildSearchUrl(
   }[query.sort ?? "relevance"];
   if (how) params.set("how", how);
   return `${baseUrl}/search?${params.toString()}`;
+}
+
+/** Страница защиты Маркета: капча (showcaptcha/SmartCaptcha) или 403 «Доступ к сервису временно запрещён». */
+export function yandexMarketBlock(page: {
+  status: number;
+  finalUrl: string;
+  html: string;
+}): BlockReason | undefined {
+  if (
+    /showcaptcha|checkcaptcha/i.test(page.finalUrl) ||
+    isCaptchaPage(page.html)
+  )
+    return "captcha";
+  if (
+    page.status === 403 ||
+    /Доступ к(&nbsp;|\s)сервису временно запрещ/.test(page.html)
+  )
+    return "forbidden";
+  return undefined;
 }
 
 export function isCaptchaPage(html: string): boolean {
@@ -194,46 +196,4 @@ function cleanCardUrl(href: string, baseUrl: string): string {
   return url.toString();
 }
 
-function filterAndSort(
-  offers: ProductOffer[],
-  query: ProductQuery,
-): ProductOffer[] {
-  let result = offers.filter(
-    (o) =>
-      (query.priceMin === undefined || o.price >= query.priceMin) &&
-      (query.priceMax === undefined || o.price <= query.priceMax),
-  );
-  if (query.sort === "price_asc")
-    result = result.sort((a, b) => a.price - b.price);
-  if (query.sort === "price_desc")
-    result = result.sort((a, b) => b.price - a.price);
-  if (query.sort === "rating")
-    result = result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-  return result.slice(0, query.limit ?? 10);
-}
-
-function toNumber(value: unknown): number | undefined {
-  if (typeof value === "number")
-    return Number.isFinite(value) ? value : undefined;
-  if (typeof value !== "string") return undefined;
-  const n = Number(value.replace(/[\s\u00a0\u2009]/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : undefined;
-}
-
-export function decodeEntities(text: string): string {
-  return text.replace(
-    /&(#x[0-9a-f]+|#\d+|quot|amp|lt|gt|apos|#39|nbsp);/gi,
-    (_, e: string) => {
-      const lower = e.toLowerCase();
-      if (lower.startsWith("#x"))
-        return String.fromCodePoint(parseInt(lower.slice(2), 16));
-      if (lower.startsWith("#"))
-        return String.fromCodePoint(parseInt(lower.slice(1), 10));
-      return (
-        { quot: '"', amp: "&", lt: "<", gt: ">", apos: "'", nbsp: "\u00a0" }[
-          lower
-        ] ?? _
-      );
-    },
-  );
-}
+export { decodeEntities };
