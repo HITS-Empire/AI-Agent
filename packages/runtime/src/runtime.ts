@@ -349,6 +349,7 @@ export class AgentRuntime {
         {
           sessionId: input.sessionId,
           taskId,
+          traceId: root.traceId,
           channel: input.channel,
           steps: result.steps,
           tokens: total.totalTokens,
@@ -381,7 +382,12 @@ export class AgentRuntime {
       });
       this.log(
         "error",
-        { sessionId: input.sessionId, taskId, error: String(error) },
+        {
+          sessionId: input.sessionId,
+          taskId,
+          traceId: root.traceId,
+          error: String(error),
+        },
         "задача упала",
       );
       throw error;

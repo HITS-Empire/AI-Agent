@@ -29,7 +29,9 @@ async function main(): Promise<void> {
   }
 
   // логи в stderr и только предупреждения, чтобы не мешать диалогу
-  const log = createLogger("cli", process.env.LOG_LEVEL_CLI ?? "warn");
+  const log = createLogger("cli", process.env.LOG_LEVEL_CLI ?? "warn", {
+    stderr: true,
+  });
   const ownerId = process.env.BURMALDA_OWNER_ID ?? "owner";
   const sessionId = process.env.BURMALDA_SESSION_ID ?? `${ownerId}:main`;
   const bundle = await createRuntimeFromConfig(config, log, {

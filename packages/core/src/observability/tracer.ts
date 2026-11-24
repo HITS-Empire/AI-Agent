@@ -9,6 +9,8 @@ export type AttributeValue = string | number | boolean | string[];
 export type Attributes = Record<string, AttributeValue | undefined>;
 
 export interface Span {
+  /** id трейса (OpenTelemetry), чтобы связать логи с трейсами; у noop-спана нет. */
+  readonly traceId?: string;
   setAttributes(attributes: Attributes): void;
   recordError(error: unknown): void;
   end(): void;
