@@ -3,6 +3,8 @@ import type { JsonSchema } from "../llm/types";
 export interface ToolContext {
   sessionId: string;
   taskId: string;
+  /** Владелец ассистента: ключ долговременной памяти и профиля. */
+  ownerId?: string;
   /** Корень рабочей области агента (внутри песочницы — /workspace). */
   workspaceRoot: string;
   signal?: AbortSignal;
