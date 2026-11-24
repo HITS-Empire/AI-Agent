@@ -1,0 +1,16 @@
+{
+  "name": "@burmalda/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@burmalda/core": "workspace:*",
+    "@burmalda/integrations": "workspace:*",
+    "@burmalda/memory": "workspace:*",
+    "@burmalda/observability": "workspace:*",
+    "@burmalda/shared": "workspace:*"
+  }
+}
