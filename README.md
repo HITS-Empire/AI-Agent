@@ -84,6 +84,14 @@ pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и T
 Токен — в `GITHUB_TOKEN` в `.env`. Без токена сервер пропускается, остальное работает.
 Локальная альтернатива — сервер `github-local` в Docker (тоже read-only), включается снятием `disabled`.
 
+### Маркетплейсы
+
+`marketplace_search` открывает публичные страницы поиска Маркета, Ozon и WB в headless-браузере отдельного
+контейнера: `docker-compose up -d --build browser` (образ ~2 ГБ). Без входа, без обхода защиты; на капче
+площадка помечается недоступной. Подробности — docs/TOOLS.md.
+
+Маршрутизация моделей, бюджеты и запрет обхода шлюза — docs/GATEWAY.md.
+
 ## Где смотреть
 
 | Что                                      | Адрес                    |
@@ -95,7 +103,8 @@ pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и T
 ## Проверки
 
 ```bash
-pnpm check   # typecheck + eslint + prettier + тесты
+pnpm check   # ядро без зависимостей + typecheck + eslint + prettier + тесты
+pnpm check:budget   # живая проверка: ключ с крошечным бюджетом получает 422 budget_exceeded
 pnpm test    # только тесты (node:test, сценарии на FakeLlmClient, без токенов)
 
 # интеграционные тесты на живых Postgres и Redis из compose

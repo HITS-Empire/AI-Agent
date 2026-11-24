@@ -14,11 +14,11 @@ A пишет навыки и проверяет их на живой модел�
 
 ## Готово (A)
 
-| Инструмент                                                  | Где                                         | Назначение                                                                          |
-| ----------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `remember`, `recall_memory`, `forget_memory`, `set_profile` | `packages/memory/src/tools.ts`              | Долговременная память и профиль                                                     |
-| `marketplace_search`                                        | `packages/runtime/src/tools/marketplace.ts` | Поиск по адаптерам маркетплейсов (сейчас Яндекс Маркет; на капче — в `unavailable`) |
-| `mcp__<сервер>__<инструмент>`                               | `packages/core/src/mcp/client.ts`           | Инструменты MCP-серверов из `config/mcp.json`                                       |
+| Инструмент                                                  | Где                                         | Назначение                                                                                      |
+| ----------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `remember`, `recall_memory`, `forget_memory`, `set_profile` | `packages/memory/src/tools.ts`              | Долговременная память и профиль                                                                 |
+| `marketplace_search`                                        | `packages/runtime/src/tools/marketplace.ts` | Поиск по Яндекс Маркету, Ozon и WB через сервис браузера; на капче/блокировке — в `unavailable` |
+| `mcp__<сервер>__<инструмент>`                               | `packages/core/src/mcp/client.ts`           | Инструменты MCP-серверов из `config/mcp.json`                                                   |
 
 ## Нужно от B
 
@@ -62,6 +62,8 @@ A пишет навыки и проверяет их на живой модел�
 
 ### Маркетплейсы
 
-Адаптеры Ozon и Wildberries — `createMarketplaceAdapter(id)` в `packages/integrations/src/marketplaces/index.ts`
-по интерфейсу `MarketplaceAdapter`. Как только адаптер перестаёт бросать `notImplemented`, `marketplace_search`
-подхватывает его сам (список площадок — `MARKETPLACES` в `.env`).
+Адаптеры трёх площадок — `packages/integrations/src/marketplaces/{yandexMarket,ozon,wildberries}.ts`, список — `MARKETPLACES`
+в `.env`. Страницы открывает сервис `browser` (`infra/browser`, `docker-compose up -d browser`, `BROWSER_URL`):
+headless Chromium в отдельном контейнере, только публичный поиск трёх доменов, без входа и без stealth,
+одна страница на сайт за `BROWSER_MIN_INTERVAL_MS` (10 с). Парсеры проверяются на фикстурах в `marketplaces/fixtures`
+(у Ozon и WB выдача синтетическая — живую снять не удалось, страницы защиты настоящие).
