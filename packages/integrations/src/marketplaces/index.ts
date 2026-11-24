@@ -6,17 +6,22 @@ import type {
   ProductQuery,
 } from "./types";
 
+import { createYandexMarketAdapter } from "./yandexMarket";
+
 export * from "./types";
+export * from "./yandexMarket";
+export * from "./curlFetch";
 
 /**
- * TODO(B): адаптеры Ozon, Wildberries, Яндекс Маркета. Простые HTTP-запросы к поиску площадок
- * блокируются антиботом (проверено 24.11.2026: WB — 403, Ozon — 307, Маркет — 302 на капчу),
- * поэтому чтение идёт через браузер в песочнице (см. docs/PLAN.md, «Маркетплейсы»).
- * Без входа в аккаунт, с паузами и кэшем; на капче — MarketplaceBlockedError, обходить её нельзя.
+ * Яндекс Маркет готов (обычный HTTP, см. yandexMarket.ts).
+ * TODO(B): адаптеры Ozon и Wildberries. Простые HTTP-запросы к их поиску блокируются антиботом
+ * (WB — 403, Ozon — 307), поэтому чтение идёт через браузер в песочнице (см. docs/PLAN.md,
+ * «Маркетплейсы»). Без входа в аккаунт, с паузами и кэшем; на капче — MarketplaceBlockedError.
  */
 export function createMarketplaceAdapter(
   id: MarketplaceId,
 ): MarketplaceAdapter {
+  if (id === "yandex_market") return createYandexMarketAdapter();
   return notImplemented(`адаптер маркетплейса ${id}`);
 }
 
