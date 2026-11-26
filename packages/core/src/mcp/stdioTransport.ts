@@ -28,8 +28,9 @@ export class StdioTransport implements Transport {
       cwd: this.options.cwd,
       env: { ...process.env, ...this.options.env },
       stdio: ["pipe", "pipe", "pipe"],
-      // На Windows npx/uvx — это .cmd, без shell их не запустить
-      shell: process.platform === "win32",
+      // npx/uvx на Windows — это .cmd. Shell для всех команд прячет ENOENT:
+      // cmd.exe стартует и сразу выходит с кодом 1, и «команды нет» неотличимо от падения сервера.
+      shell: needsWindowsShell(this.options.command),
     });
     this.child = child;
 
@@ -108,4 +109,21 @@ export class StdioTransport implements Transport {
       child.kill("SIGTERM");
     });
   }
+}
+
+/** .cmd/.bat и обёртки npm/uv без shell на Windows не запускаются. Остальные команды — напрямую, чтобы была ошибка ENOENT. */
+function needsWindowsShell(command: string): boolean {
+  if (process.platform !== "win32") return false;
+  const base =
+    command.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
+  return (
+    base === "npx" ||
+    base === "npm" ||
+    base === "pnpm" ||
+    base === "yarn" ||
+    base === "uvx" ||
+    base === "uv" ||
+    base.endsWith(".cmd") ||
+    base.endsWith(".bat")
+  );
 }
