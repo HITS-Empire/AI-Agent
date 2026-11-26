@@ -1,10 +1,13 @@
+import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   GatewayClient,
   ToolRegistry,
   collectAgentsMd,
   discoverSkills,
+  fsTools,
   loadMcpConfig,
+  loadSkillTool,
   noopTracer,
 } from "@burmalda/core";
 import {
@@ -83,6 +86,8 @@ export async function createRuntimeFromConfig(
 
   const tools = new ToolRegistry();
   for (const tool of memoryTools(longTerm, profile)) tools.register(tool);
+  for (const tool of fsTools()) tools.register(tool);
+  tools.register(loadSkillTool([resolve(root, "skills")]));
   const adapters = marketplaceAdapters(process.env.MARKETPLACES, log);
   if (adapters.length) tools.register(marketplaceSearchTool(adapters));
   options.extraTools?.(tools);
@@ -96,6 +101,7 @@ export async function createRuntimeFromConfig(
     : undefined;
 
   const workspace = resolve(root, config.sandbox.workspaceDir);
+  await mkdir(workspace, { recursive: true });
   const runtime = new AgentRuntime({
     llm: gateway,
     models: config.gateway.models,
@@ -111,6 +117,7 @@ export async function createRuntimeFromConfig(
       ),
     },
     tracer: tracing?.tracer ?? noopTracer,
+    workspaceRoot: workspace,
     instructions: () => collectAgentsMd(workspace, workspace),
     skills: () => discoverSkills([resolve(root, "skills")]),
     extractFacts: (messages, known, sessionId, llm) =>
