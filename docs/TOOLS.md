@@ -38,7 +38,7 @@ A пишет навыки и проверяет их на живой модел�
 
 ### Календарь (`skills/calendar`)
 
-`integrations/src/calendar/caldav.ts` и `icsParse.ts` — свой CalDAV и VEVENT, без tsdav.
+`integrations/src/calendar/caldav.ts` и `icsParse.ts` — свой CalDAV и VEVENT, без tsdav. Если PROPFIND не отдаёт тело, событие читается GET-ом по ссылке `.ics`.
 `calendar_list` сливает личный календарь и внешний источник, если он передан.
 `calendar_delete` для `intime:` и `ext:` отвечает «только чтение».
 

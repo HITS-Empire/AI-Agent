@@ -50,7 +50,8 @@ test(
 
       await assert.rejects(runner.run("docker ps"), /allowlist/);
 
-      const secret = await runner.run("cat .env || true");
+      // В команде нет литерала `.env`: allowlist и так его режет. Здесь проверяется маска тома.
+      const secret = await runner.run("cat .e* || true");
       assert.equal(secret.stdout.includes("TOKEN=secret"), false);
 
       const net = await runner.run("curl -I https://example.com || true");

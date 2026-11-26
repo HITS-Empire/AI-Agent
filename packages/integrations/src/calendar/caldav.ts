@@ -68,7 +68,18 @@ export function createCalDavCalendar(options: CalDavOptions): PersonalCalendar {
       }
       const xml = await response.text();
       const events: CalendarEvent[] = [];
-      for (const ics of extractCalendarData(xml)) {
+      // Radicale на PROPFIND не отдаёт calendar-data (свойство 404). Тогда читаем .ics по ссылкам.
+      const bodies = extractCalendarData(xml);
+      if (bodies.length === 0) {
+        const origin = new URL(collection).origin;
+        for (const href of extractHrefs(xml)) {
+          const file = await request(new URL(href, origin).href, {
+            method: "GET",
+          });
+          if (file.ok) bodies.push(await file.text());
+        }
+      }
+      for (const ics of bodies) {
         for (const event of parseIcs(ics)) {
           if (!overlaps(event, from, to)) continue;
           events.push({
@@ -128,6 +139,17 @@ const PROPFIND = `<?xml version="1.0" encoding="utf-8" ?>
 <D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:prop><C:calendar-data/></D:prop>
 </D:propfind>`;
+
+/** Ссылки на объекты календаря из PROPFIND. Коллекция сама в список не входит. */
+export function extractHrefs(xml: string): string[] {
+  const hrefs: string[] = [];
+  const pattern = /<(?:[\w.-]+:)?href[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?href>/gi;
+  for (const match of xml.matchAll(pattern)) {
+    const href = unescapeXml(match[1] ?? "").trim();
+    if (href.toLowerCase().endsWith(".ics")) hrefs.push(href);
+  }
+  return hrefs;
+}
 
 export function extractCalendarData(xml: string): string[] {
   const found: string[] = [];

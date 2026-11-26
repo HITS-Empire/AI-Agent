@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { formatEventIcs, overlaps, parseIcs } from "./icsParse";
-import { extractCalendarData } from "./caldav";
+import {
+  createCalDavCalendar,
+  extractCalendarData,
+  extractHrefs,
+} from "./caldav";
 import { IcsSource } from "./ics";
 
 const SAMPLE = [
@@ -81,6 +85,40 @@ test("IcsSource фильтрует фид по диапазону", async () => 
     new Date("2026-11-29T00:00:00.000Z"),
   );
   assert.equal(outside.length, 0);
+});
+
+test("CalDAV: если PROPFIND без тела, событие читается GET-ом", async () => {
+  const ics = formatEventIcs({
+    uid: "uid-1",
+    title: "Встреча",
+    start: "2026-11-27T08:00:00.000Z",
+    end: "2026-11-27T09:00:00.000Z",
+  });
+  const xml =
+    "<multistatus><response><href>/owner/personal/</href></response><response><href>/owner/personal/uid-1.ics</href><propstat><prop><calendar-data /></prop><status>HTTP/1.1 404 Not Found</status></propstat></response></multistatus>";
+  assert.deepEqual(extractHrefs(xml), ["/owner/personal/uid-1.ics"]);
+  const calendar = createCalDavCalendar({
+    url: "https://cal.example/owner/personal/",
+    username: "owner",
+    password: "secret",
+    fetchImpl: async (input, init) => {
+      const method = init?.method ?? "GET";
+      const href = String(input);
+      if (method === "PROPFIND" && href.endsWith("/")) {
+        return new Response(xml, { status: 207 });
+      }
+      if (method === "GET" && href.endsWith("uid-1.ics")) {
+        return new Response(ics, { status: 200 });
+      }
+      return new Response("", { status: 500 });
+    },
+  });
+  const events = await calendar.listEvents(
+    new Date("2026-11-27T00:00:00.000Z"),
+    new Date("2026-11-28T00:00:00.000Z"),
+  );
+  assert.equal(events.length, 1);
+  assert.equal(events[0]?.title, "Встреча");
 });
 
 test("IcsSource не открывает частный адрес", async () => {

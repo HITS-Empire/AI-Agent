@@ -14,7 +14,8 @@ test("Radicale: создать, прочитать и удалить событ�
     return;
   }
   try {
-    const probe = await fetch(url, { signal: AbortSignal.timeout(1000) });
+    // У Radicale неудачный вход ждёт auth.delay (1 с). Короткий таймаут принимал живой сервер за молчание.
+    const probe = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (probe.status >= 500) {
       t.skip(`Radicale HTTP ${probe.status}`);
       return;
