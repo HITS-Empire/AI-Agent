@@ -8,6 +8,7 @@ export * from "./tools/types";
 export * from "./tools/registry";
 export * from "./tools/fs";
 export * from "./tools/skills";
+export * from "./tools/os";
 export * from "./agent/loop";
 export * from "./context/compaction";
 export * from "./instructions/agentsMd";

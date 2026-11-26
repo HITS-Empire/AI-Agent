@@ -1,37 +1,23 @@
 import { notImplemented } from "@burmalda/shared";
-import { platform } from "node:os";
+import type { ShellRunner } from "./types";
 
-export interface ShellResult {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-  timedOut: boolean;
-}
-
-export interface ShellRunOptions {
-  cwd?: string;
-  timeoutMs?: number;
-  signal?: AbortSignal;
-}
-
-export interface ShellRunner {
-  readonly kind: "sandbox" | "host";
-  /** Человекочитаемое имя оболочки: «bash (docker)», «pwsh 7», «zsh». */
-  readonly shellName: string;
-  run(command: string, options?: ShellRunOptions): Promise<ShellResult>;
-}
-
-export type HostShell = "pwsh" | "bash" | "zsh";
-
-/**
- * Какую оболочку использовать на хосте: Windows → PowerShell 7+ (pwsh, не Windows PowerShell 5.1),
- * macOS → zsh, Linux → bash. TODO(B): проверка наличия и версии (`pwsh -v` >= 7).
- */
-export function detectHostShell(os: NodeJS.Platform = platform()): HostShell {
-  if (os === "win32") return "pwsh";
-  if (os === "darwin") return "zsh";
-  return "bash";
-}
+export {
+  detectHostShell,
+  type HostShell,
+  type ShellResult,
+  type ShellRunOptions,
+  type ShellRunner,
+} from "./types";
+export {
+  commandTouchesSecrets,
+  createHostRunner,
+  hostInvocation,
+  killTree,
+  parsePwshMajor,
+  sanitizedEnv,
+  type HostRunnerOptions,
+} from "./host";
+export { openInvocation, openOnHost } from "./open";
 
 /**
  * TODO(B): контейнер сессии `docker run -d --network none --read-only --cap-drop ALL
@@ -43,11 +29,4 @@ export function createSandboxRunner(_options: {
   sessionId: string;
 }): ShellRunner {
   return notImplemented("песочница");
-}
-
-/** TODO(B): host-режим (только с подтверждением владельца): spawn pwsh -NoProfile -Command / bash -lc / zsh -lc. */
-export function createHostRunner(
-  _shell: HostShell = detectHostShell(),
-): ShellRunner {
-  return notImplemented("host shell");
 }

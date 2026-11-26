@@ -6,10 +6,19 @@ import {
   collectAgentsMd,
   discoverSkills,
   fsTools,
+  listProcessesTool,
   loadMcpConfig,
   loadSkillTool,
   noopTracer,
+  openUrlTool,
+  osInfoTool,
+  shellTool,
 } from "@burmalda/core";
+import {
+  createHostRunner,
+  detectHostShell,
+  openOnHost,
+} from "@burmalda/sandbox";
 import {
   createBrowserRenderer,
   createMarketplaceAdapter,
@@ -88,6 +97,14 @@ export async function createRuntimeFromConfig(
   for (const tool of memoryTools(longTerm, profile)) tools.register(tool);
   for (const tool of fsTools()) tools.register(tool);
   tools.register(loadSkillTool([resolve(root, "skills")]));
+  tools.register(osInfoTool(detectHostShell()));
+  if (config.sandbox.shellMode === "host") {
+    const runner = createHostRunner();
+    const getRunner = () => runner;
+    tools.register(shellTool({ getRunner, host: true }));
+    tools.register(listProcessesTool({ getRunner }));
+    tools.register(openUrlTool({ open: openOnHost }));
+  }
   const adapters = marketplaceAdapters(process.env.MARKETPLACES, log);
   if (adapters.length) tools.register(marketplaceSearchTool(adapters));
   options.extraTools?.(tools);
