@@ -22,7 +22,7 @@ cp .env.example .env            # заполнить LITELLM_MASTER_KEY, LITELLM
 pnpm sandbox:build              # образ песочницы
 mkdir -p .secrets/chatgpt .secrets/radicale
 printf 'owner:%s\n' "$(openssl rand -hex 16)" > .secrets/radicale/users   # пароль для Radicale → CALDAV_PASSWORD в .env
-pnpm infra:up                   # postgres+pgvector, redis, litellm, phoenix, ollama, radicale
+pnpm infra:up                   # postgres+pgvector, redis, litellm, phoenix, ollama, radicale, searxng
 docker compose exec ollama ollama pull bge-m3   # модель эмбеддингов для памяти
 ```
 

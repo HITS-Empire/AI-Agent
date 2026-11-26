@@ -22,11 +22,16 @@ import {
   type ShellRunner,
 } from "@burmalda/sandbox";
 import {
+  IcsSource,
   createBrowserRenderer,
+  createCalDavCalendar,
   createMarketplaceAdapter,
+  type ExternalScheduleSource,
   type MarketplaceAdapter,
   type MarketplaceId,
+  type PersonalCalendar,
 } from "@burmalda/integrations";
+import { createBullReminderStore } from "@burmalda/queue";
 import {
   LongTermMemory,
   ProfileStore,
@@ -40,7 +45,10 @@ import {
 import { createTracing, type Tracing } from "@burmalda/observability";
 import type { AppConfig, Logger } from "@burmalda/shared";
 import { AgentRuntime } from "./runtime";
+import { calendarTools } from "./tools/calendar";
 import { marketplaceSearchTool } from "./tools/marketplace";
+import { reminderTools } from "./tools/reminders";
+import { fetchUrlTool, webSearchTool } from "./tools/web";
 
 export const EMBEDDING_DIMENSIONS = 1024; // bge-m3
 
@@ -124,6 +132,11 @@ export async function createRuntimeFromConfig(
   tools.register(openUrlTool({ open: openOnHost }));
   const adapters = marketplaceAdapters(process.env.MARKETPLACES, log);
   if (adapters.length) tools.register(marketplaceSearchTool(adapters));
+  tools.register(webSearchTool());
+  tools.register(fetchUrlTool());
+  const reminders = createBullReminderStore(config.redisUrl);
+  for (const tool of reminderTools(reminders.store)) tools.register(tool);
+  for (const tool of calendarTools(calendarSources())) tools.register(tool);
   options.extraTools?.(tools);
 
   const otelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -181,6 +194,7 @@ export async function createRuntimeFromConfig(
     sessions,
     async shutdown() {
       await runtime.close();
+      await reminders.close();
       await tracing?.shutdown();
       await pool.end();
     },
@@ -192,6 +206,25 @@ const KNOWN_MARKETPLACES: readonly MarketplaceId[] = [
   "ozon",
   "wildberries",
 ];
+
+function calendarSources(): {
+  personal?: PersonalCalendar;
+  external?: ExternalScheduleSource;
+} {
+  const url = process.env.CALDAV_URL?.trim();
+  const username = process.env.CALDAV_USERNAME?.trim();
+  const password = process.env.CALDAV_PASSWORD ?? "";
+  const personal =
+    url && username && password
+      ? createCalDavCalendar({ url, username, password })
+      : undefined;
+  const icsUrl = process.env.EXTERNAL_CALENDAR_ICS_URL?.trim();
+  const external =
+    process.env.EXTERNAL_CALENDAR_SOURCE === "ics" && icsUrl
+      ? new IcsSource(icsUrl)
+      : undefined;
+  return { personal, external };
+}
 
 function marketplaceAdapters(
   raw: string | undefined,

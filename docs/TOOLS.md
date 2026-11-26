@@ -20,36 +20,51 @@ A пишет навыки и проверяет их на живой модел�
 | `marketplace_search`                                        | `packages/runtime/src/tools/marketplace.ts` | Поиск по Яндекс Маркету, Ozon и WB через сервис браузера; на капче/блокировке — в `unavailable` |
 | `mcp__<сервер>__<инструмент>`                               | `packages/core/src/mcp/client.ts`           | Инструменты MCP-серверов из `config/mcp.json`                                                   |
 
-## Нужно от B
+## Готово (B)
+
+Живые SearXNG, Radicale и Redis в среде, где писался код, не поднимались: интеграционные тесты
+пропускаются, если сервиса нет. `schedule` (только InTime) — ещё нет.
 
 ### Поиск (`skills/web-search`)
 
-| Инструмент   | Аргументы                                 | Результат                                                       |
-| ------------ | ----------------------------------------- | --------------------------------------------------------------- |
-| `web_search` | `query: string`, `limit?: number` (до 10) | JSON-массив `{ title, url, snippet }`                           |
-| `fetch_url`  | `url: string`, `max_chars?: number`       | Основной текст страницы (без разметки), заголовок, итоговый URL |
+`integrations/src/search`: SearXNG (`SEARXNG_URL`, сервис `searxng` в compose) и `fetch_url`
+с отсечением частных адресов. Текст страницы помечается как данные, не инструкции.
 
 ### Напоминания (`skills/reminders`)
 
-| Инструмент        | Аргументы                                                                      | Результат                                 |
-| ----------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
-| `create_reminder` | `text: string`, `at: string` (ISO 8601), `cron?: string` (5 полей, Asia/Tomsk) | `{ id, text, nextAt }`                    |
-| `list_reminders`  | —                                                                              | JSON-массив `{ id, text, nextAt, cron? }` |
-| `cancel_reminder` | `id: string`                                                                   | `"Отменено"` или ошибка                   |
-
-Срабатывание: планировщик кладёт в `AGENT_QUEUE` задачу с `channel: "scheduler"` и текстом
-`Напоминание: <text>` в сессию владельца — ответ уходит во все подписанные интерфейсы.
+`queue/src/reminders.ts`: одноразовые delayed jobs и cron из 5 полей в Asia/Tomsk.
+Слушает очередь только worker. Срабатывание — задача `channel: "scheduler"`, текст `Напоминание: <text>`.
 
 ### Календарь (`skills/calendar`)
 
-| Инструмент        | Аргументы                                                                 | Результат                                                |
-| ----------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `calendar_list`   | `from: string`, `to: string`                                              | JSON-массив `CalendarEvent` (личные + пары), по времени  |
-| `schedule`        | `from: string`, `to: string`                                              | Только пары из InTime                                    |
-| `calendar_add`    | `title`, `start`, `end?` (по умолчанию +1 ч), `location?`, `description?` | `{ id, ... }` созданного события                         |
-| `calendar_delete` | `id: string`                                                              | `"Удалено"`; для событий InTime — ошибка «только чтение» |
+`integrations/src/calendar/caldav.ts` и `icsParse.ts` — свой CalDAV и VEVENT, без tsdav.
+`calendar_list` сливает личный календарь и внешний источник, если он передан.
+`calendar_delete` для `intime:` и `ext:` отвечает «только чтение».
+
+| Инструмент        | Аргументы                                                                      | Результат                                 |
+| ----------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
+| `web_search`      | `query: string`, `limit?: number` (до 10)                                      | JSON-массив `{ title, url, snippet }`     |
+| `fetch_url`       | `url: string`, `max_chars?: number`                                            | Заголовок, итоговый URL и текст страницы  |
+| `create_reminder` | `text: string`, `at: string` (ISO 8601), `cron?: string` (5 полей, Asia/Tomsk) | `{ id, text, nextAt }`                    |
+| `list_reminders`  | —                                                                              | JSON-массив `{ id, text, nextAt, cron? }` |
+| `cancel_reminder` | `id: string`                                                                   | `"Отменено"` или ошибка                   |
+| `calendar_list`   | `from: string`, `to: string`                                                   | JSON-массив `CalendarEvent`, по времени   |
+| `calendar_add`    | `title`, `start`, `end?` (по умолчанию +1 ч), `location?`, `description?`      | `{ id, ... }` созданного события          |
+| `calendar_delete` | `id: string`                                                                   | `"Удалено"`; для InTime — «только чтение» |
+
+## Нужно от B
+
+### Расписание InTime (`skills/calendar`)
+
+| Инструмент | Аргументы                    | Результат             |
+| ---------- | ---------------------------- | --------------------- |
+| `schedule` | `from: string`, `to: string` | Только пары из InTime |
 
 `CalendarEvent` — `packages/integrations/src/calendar/types.ts`.
+Группа по умолчанию — `INTIME_GROUP_ID` (972302). `calendar_list` уже умеет подмешать внешний источник,
+когда рантайм его передаёт.
+
+## Контракты, уже в коде
 
 ### Навыки и инструкции
 

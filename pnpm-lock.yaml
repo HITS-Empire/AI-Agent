@@ -149,6 +149,9 @@ importers:
       '@burmalda/observability':
         specifier: workspace:*
         version: link:../observability
+      '@burmalda/queue':
+        specifier: workspace:*
+        version: link:../queue
       '@burmalda/sandbox':
         specifier: workspace:*
         version: link:../sandbox
