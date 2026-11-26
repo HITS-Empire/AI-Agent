@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   INTIME_DEFAULT_GROUP_ID,
+  eventsInRange,
   InTimeSource,
   parseInTimeSchedule,
   tomskDateParam,
@@ -33,6 +34,33 @@ test("фикстура расписания 972302: 14 пар, 08:45 Томск�
   assert.match(first?.location ?? "", /227/);
   assert.equal(first?.source, "TSU.InTime");
   assert.equal(INTIME_DEFAULT_GROUP_ID, "ac6b8bef-2c83-11ee-8151-005056bc52bb");
+});
+
+test("InTime: в ответ попадают только события внутри интервала", () => {
+  const events = eventsInRange(
+    [
+      {
+        id: "mon",
+        title: "Понедельник",
+        start: "2026-11-23T01:45:00.000Z",
+        end: "2026-11-23T03:20:00.000Z",
+        source: "TSU.InTime",
+      },
+      {
+        id: "next",
+        title: "Следующий понедельник",
+        start: "2026-11-30T01:45:00.000Z",
+        end: "2026-11-30T03:20:00.000Z",
+        source: "TSU.InTime",
+      },
+    ],
+    new Date("2026-11-23T00:00:00+07:00"),
+    new Date("2026-11-30T00:00:00+07:00"),
+  );
+  assert.deepEqual(
+    events.map((event) => event.id),
+    ["mon"],
+  );
 });
 
 test("InTime: битый ответ — понятная ошибка", () => {

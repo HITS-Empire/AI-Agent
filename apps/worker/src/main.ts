@@ -45,32 +45,38 @@ async function main(): Promise<void> {
       { taskId: task.taskId, sessionId: task.sessionId, channel: task.channel },
       "задача",
     );
-    const result = await bundle.runtime.run(
-      { ...task, ownerId },
-      {
-        onEvent: (event) => {
-          void bus
-            .publish(task.sessionId, event)
-            .catch((error: unknown) =>
-              log.warn(
-                { error: String(error) },
-                "не удалось опубликовать событие",
-              ),
-            );
+    let published = Promise.resolve();
+    const publish = (event: Parameters<EventBus["publish"]>[1]) => {
+      published = published.then(() =>
+        bus.publish(task.sessionId, event).catch((error: unknown) => {
+          log.warn({ error: String(error) }, "не удалось опубликовать событие");
+        }),
+      );
+      return published;
+    };
+    try {
+      const result = await bundle.runtime.run(
+        { ...task, ownerId },
+        {
+          onEvent: (event) => {
+            void publish(event);
+          },
+          requestApproval: async (text) => {
+            const requestId = randomUUID();
+            await publish({
+              type: "approval_required",
+              taskId: task.taskId,
+              requestId,
+              text,
+            });
+            return bus.waitApproval(requestId);
+          },
         },
-        requestApproval: async (text) => {
-          const requestId = randomUUID();
-          await bus.publish(task.sessionId, {
-            type: "approval_required",
-            taskId: task.taskId,
-            requestId,
-            text,
-          });
-          return bus.waitApproval(requestId);
-        },
-      },
-    );
-    return { text: result.text, usage: result.usage };
+      );
+      return { text: result.text, usage: result.usage };
+    } finally {
+      await published;
+    }
   });
 
   worker.on("failed", (job, error) =>

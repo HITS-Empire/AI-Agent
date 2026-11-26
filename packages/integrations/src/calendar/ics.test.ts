@@ -68,6 +68,7 @@ test("IcsSource фильтрует фид по диапазону", async () => 
   const source = new IcsSource(
     "https://calendar.example/feed.ics",
     async () => new Response(SAMPLE, { status: 200 }),
+    async () => ["93.184.216.34"],
   );
   const inside = await source.getEvents(
     new Date("2026-11-27T00:00:00.000Z"),
@@ -80,4 +81,15 @@ test("IcsSource фильтрует фид по диапазону", async () => 
     new Date("2026-11-29T00:00:00.000Z"),
   );
   assert.equal(outside.length, 0);
+});
+
+test("IcsSource не открывает частный адрес", async () => {
+  const source = new IcsSource(
+    "http://127.0.0.1/feed.ics",
+    async () => new Response("BEGIN:VCALENDAR", { status: 200 }),
+  );
+  await assert.rejects(
+    () => source.getEvents(new Date(), new Date(Date.now() + 1000)),
+    /закрыт/,
+  );
 });

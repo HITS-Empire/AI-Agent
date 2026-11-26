@@ -140,32 +140,46 @@ export function createBullReminderStore(
         nextAt: plan.nextAt,
         cron: plan.cron,
       };
-      if (plan.cron) {
-        await queue.upsertJobScheduler(
-          id,
-          { pattern: plan.cron, tz: "Asia/Tomsk" },
-          { name: "fire", data: { sessionId: input.sessionId, id } },
-        );
-        const scheduler = await queue.getJobScheduler(id);
-        record.repeatKey = id;
-        record.nextAt = scheduler?.next
-          ? new Date(scheduler.next).toISOString()
-          : record.nextAt;
-      } else {
-        const delay = Math.max(0, new Date(plan.nextAt).getTime() - Date.now());
-        await queue.add(
-          "fire",
-          { sessionId: input.sessionId, id },
-          {
-            jobId: id,
-            delay,
-            attempts: 3,
-            removeOnComplete: true,
-            removeOnFail: 50,
-          },
-        );
-      }
+      // Сначала запись: иначе job с нулевой задержкой срабатывает, не находит хеш и пропадает.
       await redis.hset(hashKey(input.sessionId), id, JSON.stringify(record));
+      try {
+        if (plan.cron) {
+          await queue.upsertJobScheduler(
+            id,
+            { pattern: plan.cron, tz: "Asia/Tomsk" },
+            { name: "fire", data: { sessionId: input.sessionId, id } },
+          );
+          const scheduler = await queue.getJobScheduler(id);
+          record.repeatKey = id;
+          record.nextAt = scheduler?.next
+            ? new Date(scheduler.next).toISOString()
+            : record.nextAt;
+          await redis.hset(
+            hashKey(input.sessionId),
+            id,
+            JSON.stringify(record),
+          );
+        } else {
+          const delay = Math.max(
+            0,
+            new Date(plan.nextAt).getTime() - Date.now(),
+          );
+          await queue.add(
+            "fire",
+            { sessionId: input.sessionId, id },
+            {
+              jobId: id,
+              delay,
+              attempts: 3,
+              removeOnComplete: true,
+              removeOnFail: 50,
+            },
+          );
+        }
+      } catch (error) {
+        await redis.hdel(hashKey(input.sessionId), id);
+        throw error;
+      }
       return record;
     },
 

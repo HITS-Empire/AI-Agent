@@ -10,6 +10,12 @@ test("частные адреса и localhost закрыты", async () => {
   assert.equal(isPrivateIp("8.8.8.8"), false);
   assert.equal(isPrivateIp("::1"), true);
   assert.equal(isPrivateIp("::ffff:127.0.0.1"), true);
+  assert.equal(isPrivateIp("2001:4860:4860::8888"), false);
+  assert.equal(isPrivateIp("2002:7f00:1::"), true);
+  assert.equal(isPrivateIp("2002:0808:0808::"), false);
+  assert.equal(isPrivateIp("2001:0:4136:e378:8000:63bf:3fff:fdd2"), true);
+  assert.equal(isPrivateIp("fc00::1"), true);
+  assert.equal(isPrivateIp("fe80::1"), true);
   await assert.rejects(
     () => assertPublicHttpUrl("http://127.0.0.1/"),
     /закрыт/,

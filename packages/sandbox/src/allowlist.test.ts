@@ -16,6 +16,9 @@ test("allowlist пропускает обычные команды и отвер
     assertCommandAllowed("rm -rf /tmp/nowhere || true"),
   );
   assert.throws(() => assertCommandAllowed("docker ps"), /allowlist/);
+  assert.throws(() => assertCommandAllowed("bash -c 'docker ps'"), /allowlist/);
+  assert.throws(() => assertCommandAllowed("bash -lc 'sudo id'"), /allowlist/);
+  assert.doesNotThrow(() => assertCommandAllowed("bash -lc 'echo привет'"));
   assert.throws(() => assertCommandAllowed("eval echo hi"), /allowlist/);
   assert.throws(() => assertCommandAllowed("echo $(sudo id)"), /allowlist/);
   assert.throws(

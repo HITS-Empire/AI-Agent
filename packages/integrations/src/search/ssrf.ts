@@ -48,13 +48,23 @@ async function resolvePublic(hostname: string): Promise<string[]> {
 }
 
 export function isPrivateIp(ip: string): boolean {
-  const normalized = ip.toLowerCase();
+  const normalized = ip.toLowerCase().split("%")[0] ?? "";
   if (normalized.startsWith("::ffff:")) {
     return isPrivateIp(normalized.slice("::ffff:".length));
   }
   if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
   if (normalized.includes(":")) {
-    return !(normalized.startsWith("2") || normalized.startsWith("3"));
+    const groups = expandIpv6(normalized);
+    if (!groups) return true;
+    // 6to4 (2002::/16) прячет IPv4 в следующих двух группах.
+    if (groups[0] === 0x2002) {
+      return isPrivateIp(ipv4FromGroups(groups[1] ?? 0, groups[2] ?? 0));
+    }
+    // Teredo (2001:0::/32) — туннель, не открываем.
+    if (groups[0] === 0x2001 && groups[1] === 0) return true;
+    // Глобальная адресация — 2000::/3. Остальное (ULA, link-local, multicast) закрыто.
+    const first = groups[0] ?? 0;
+    return first < 0x2000 || first > 0x3fff;
   }
   const parts = normalized.split(".");
   if (parts.length !== 4) return true;
@@ -68,4 +78,33 @@ export function isPrivateIp(ip: string): boolean {
   if (a === 100 && b >= 64 && b <= 127) return true;
   if (a >= 224) return true;
   return false;
+}
+
+/** Восемь групп IPv6. Неразборчивый адрес — null, вызывающий считает его закрытым. */
+function expandIpv6(ip: string): number[] | null {
+  if (ip.includes(".")) return null;
+  const halves = ip.split("::");
+  if (halves.length > 2) return null;
+  const parse = (part: string): number[] | null => {
+    if (!part) return [];
+    const groups = part.split(":");
+    const nums: number[] = [];
+    for (const group of groups) {
+      if (!/^[0-9a-f]{1,4}$/.test(group)) return null;
+      nums.push(Number.parseInt(group, 16));
+    }
+    return nums;
+  };
+  const left = parse(halves[0] ?? "");
+  if (!left) return null;
+  if (halves.length === 1) return left.length === 8 ? left : null;
+  const right = parse(halves[1] ?? "");
+  if (!right) return null;
+  const missing = 8 - left.length - right.length;
+  if (missing < 0) return null;
+  return [...left, ...Array<number>(missing).fill(0), ...right];
+}
+
+function ipv4FromGroups(high: number, low: number): string {
+  return `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
 }

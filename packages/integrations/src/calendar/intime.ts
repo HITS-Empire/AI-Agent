@@ -70,7 +70,8 @@ export class InTimeSource implements ExternalScheduleSource {
     const response = await this.get<InTimeScheduleResponse>(
       `/schedule/group?${query}`,
     );
-    return parseInTimeSchedule(response);
+    // API отдаёт целые дни, а контракт — интервал from/to. Лишнее отрезаем.
+    return eventsInRange(parseInTimeSchedule(response), from, to);
   }
 
   private async get<T>(path: string): Promise<T> {
@@ -132,6 +133,19 @@ export function parseInTimeSchedule(
     }
   }
   return events;
+}
+
+/** Событие попадает в полуинтервал [from, to): началось раньше конца и ещё не кончилось к началу. */
+export function eventsInRange(
+  events: CalendarEvent[],
+  from: Date,
+  to: Date,
+): CalendarEvent[] {
+  return events.filter((event) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    return start < to && end > from;
+  });
 }
 
 function atUtcSeconds(date: string, seconds: number): string {

@@ -95,7 +95,7 @@ Linux — `bash -lc`, macOS — `zsh -lc`, Windows — `pwsh -NoProfile -NonInte
 Режим `SHELL_MODE=host` помечает `shell` как опасный. В окружение команды не попадают ключи, токены, пароли и `DATABASE_URL`.
 Команды с `.env`, `.secrets` и ключами отклоняются. По таймауту убивается дерево процессов.
 `SHELL_MODE=sandbox` (по умолчанию) — контейнер на сессию: `--network none`, `--read-only`, `--cap-drop ALL`, лимиты PID/RAM/CPU,
-монтируется только workspace, `.env` и `.secrets` закрыты пустым томом. Перед запуском команда проходит allowlist.
+монтируется только workspace, `.env` и `.secrets` закрыты пустым томом. Перед запуском команда проходит allowlist, включая тело `bash -c` / `bash -lc`.
 
 ### Маркетплейсы
 

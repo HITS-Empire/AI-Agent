@@ -183,6 +183,8 @@ export function commandNames(script: string): string[] {
     for (const segment of splitSegments(stripped)) {
       const name = firstCommand(segment);
       if (name) names.push(name);
+      // bash -c / bash -lc прячет следующую команду в аргументе. Её тоже проверяем.
+      for (const script of shellScripts(segment)) visit(script);
     }
     for (const inner of nested) visit(inner);
   };
@@ -299,6 +301,35 @@ function splitSegments(script: string): string[] {
   }
   push();
   return parts;
+}
+
+const SHELLS = new Set(["bash", "sh", "dash", "zsh", "busybox"]);
+
+/** Тело `shell -c` / `-lc`: иначе allowlist видит только сам bash. */
+function shellScripts(segment: string): string[] {
+  const tokens = tokenize(segment);
+  let index = 0;
+  while (
+    index < tokens.length &&
+    /^[A-Za-z_][A-Za-z0-9_]*=/.test(stripQuotes(tokens[index] ?? ""))
+  ) {
+    index += 1;
+  }
+  const raw = tokens[index];
+  if (!raw) return [];
+  const base = (stripQuotes(raw).split(/[\\/]/).pop() ?? "").toLowerCase();
+  if (!SHELLS.has(base)) return [];
+  const scripts: string[] = [];
+  for (let cursor = index + 1; cursor < tokens.length; cursor += 1) {
+    const flag = stripQuotes(tokens[cursor] ?? "");
+    const asksCommand =
+      flag === "--command" ||
+      (flag.startsWith("-") && !flag.startsWith("--") && flag.includes("c"));
+    if (!asksCommand) continue;
+    const body = tokens[cursor + 1];
+    if (body) scripts.push(stripQuotes(body));
+  }
+  return scripts;
 }
 
 function firstCommand(segment: string): string | null {
