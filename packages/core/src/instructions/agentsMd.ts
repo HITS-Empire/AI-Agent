@@ -1,6 +1,6 @@
 import { readFile, realpath } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { isEnoent, isOutside, toPosix } from "../fs/paths";
+import { join, relative, resolve, sep } from "node:path";
+import { isEnoent, isOutside, realpathExisting, toPosix } from "../fs/paths";
 
 export interface AgentsMdFile {
   path: string;
@@ -16,12 +16,12 @@ export async function collectAgentsMd(
   workspaceRoot: string,
   cwd: string,
 ): Promise<AgentsMdFile[]> {
-  const root = await realpath(resolve(workspaceRoot));
-  const target = resolve(cwd);
-  const rel = relative(root, target);
-  if (rel.startsWith("..") || isAbsolute(rel)) {
+  const root = await realpathExisting(resolve(workspaceRoot));
+  const target = await realpathExisting(resolve(cwd));
+  if (isOutside(root, target)) {
     throw new Error(`cwd вне workspace: ${cwd}`);
   }
+  const rel = relative(root, target);
 
   const dirs = [root];
   if (rel) {

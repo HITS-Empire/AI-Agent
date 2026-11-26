@@ -2,7 +2,7 @@
 // 1) в package.json ядра нет dependencies/peerDependencies/optionalDependencies;
 // 2) все импорты в исходниках ядра — только node:* или относительные пути внутри packages/core.
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import process from "node:process";
 
 const root = resolve(import.meta.dirname, "..");
@@ -42,7 +42,8 @@ for (const file of files) {
     if (spec.startsWith("node:")) continue;
     if (spec.startsWith("./") || spec.startsWith("../")) {
       const target = resolve(dirname(file), spec);
-      if (!target.startsWith(coreDir + "/") && target !== coreDir)
+      const boundary = coreDir.endsWith(sep) ? coreDir : `${coreDir}${sep}`;
+      if (target !== coreDir && !target.startsWith(boundary))
         errors.push(`${where}: относительный импорт за пределы ядра: ${spec}`);
       continue;
     }

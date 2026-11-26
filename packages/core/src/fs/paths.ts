@@ -26,6 +26,28 @@ export function toPosix(path: string): string {
   return path.split(sep).join("/");
 }
 
+/**
+ * realpath с подъёмом к существующему родителю.
+ * На macOS `/var` — симлинк на `/private/var`: без этого cwd из `os.tmpdir()`
+ * кажется лежащим вне workspace.
+ */
+export async function realpathExisting(path: string): Promise<string> {
+  const suffix: string[] = [];
+  let probe = path;
+  for (;;) {
+    try {
+      const real = await realpath(probe);
+      return suffix.length === 0 ? real : join(real, ...suffix);
+    } catch (error) {
+      if (!isEnoent(error)) throw error;
+      const parent = dirname(probe);
+      if (parent === probe) return path;
+      suffix.unshift(basename(probe));
+      probe = parent;
+    }
+  }
+}
+
 /** true, если target не лежит внутри root. Оба пути уже абсолютные. */
 export function isOutside(root: string, target: string): boolean {
   const rel = relative(root, target);
