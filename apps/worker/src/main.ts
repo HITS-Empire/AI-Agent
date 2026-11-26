@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { PROJECT_NAME, createLogger, loadConfig } from "@burmalda/shared";
 import { AGENT_QUEUE, EventBus, createAgentWorker } from "@burmalda/queue";
 import { createRuntimeFromConfig } from "@burmalda/runtime";
+import { stopAllSandboxes } from "@burmalda/sandbox";
 
 /**
  * Worker «бурмалды»: единственный процесс, где крутится цикл агента.
@@ -67,6 +68,9 @@ async function main(): Promise<void> {
   const stop = async () => {
     log.info("останавливаюсь");
     await worker.close();
+    await stopAllSandboxes().catch((error: unknown) =>
+      log.warn({ error: String(error) }, "не удалось остановить песочницы"),
+    );
     await bus.close();
     await bundle.shutdown();
     process.exit(0);

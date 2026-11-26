@@ -16,8 +16,10 @@ import {
 } from "@burmalda/core";
 import {
   createHostRunner,
+  createSandboxRunner,
   detectHostShell,
   openOnHost,
+  type ShellRunner,
 } from "@burmalda/sandbox";
 import {
   createBrowserRenderer,
@@ -93,18 +95,33 @@ export async function createRuntimeFromConfig(
       ),
   });
 
+  const workspace = resolve(root, config.sandbox.workspaceDir);
+  await mkdir(workspace, { recursive: true });
+  const hostShell = config.sandbox.shellMode === "host";
+  const hostRunner = hostShell ? createHostRunner() : undefined;
+  const sandboxes = new Map<string, ShellRunner>();
+  const getRunner = (ctx: { sessionId: string }): ShellRunner => {
+    if (hostRunner) return hostRunner;
+    const existing = sandboxes.get(ctx.sessionId);
+    if (existing) return existing;
+    const runner = createSandboxRunner({
+      image: config.sandbox.image,
+      workspaceDir: workspace,
+      sessionId: ctx.sessionId,
+      log: (level, data, msg) => log[level](data, msg),
+    });
+    sandboxes.set(ctx.sessionId, runner);
+    return runner;
+  };
+
   const tools = new ToolRegistry();
   for (const tool of memoryTools(longTerm, profile)) tools.register(tool);
   for (const tool of fsTools()) tools.register(tool);
   tools.register(loadSkillTool([resolve(root, "skills")]));
   tools.register(osInfoTool(detectHostShell()));
-  if (config.sandbox.shellMode === "host") {
-    const runner = createHostRunner();
-    const getRunner = () => runner;
-    tools.register(shellTool({ getRunner, host: true }));
-    tools.register(listProcessesTool({ getRunner }));
-    tools.register(openUrlTool({ open: openOnHost }));
-  }
+  tools.register(shellTool({ getRunner, host: hostShell }));
+  tools.register(listProcessesTool({ getRunner }));
+  tools.register(openUrlTool({ open: openOnHost }));
   const adapters = marketplaceAdapters(process.env.MARKETPLACES, log);
   if (adapters.length) tools.register(marketplaceSearchTool(adapters));
   options.extraTools?.(tools);
@@ -117,8 +134,6 @@ export async function createRuntimeFromConfig(
       })
     : undefined;
 
-  const workspace = resolve(root, config.sandbox.workspaceDir);
-  await mkdir(workspace, { recursive: true });
   const runtime = new AgentRuntime({
     llm: gateway,
     models: config.gateway.models,
