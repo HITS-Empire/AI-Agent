@@ -67,7 +67,7 @@ export function loadConfig(): AppConfig {
     sandbox: {
       image: env("SANDBOX_IMAGE", "burmalda-sandbox:local"),
       shellMode,
-      workspaceDir: env("WORKSPACE_DIR", "./data/workspace"),
+      workspaceDir: env("WORKSPACE_DIR", "."),
     },
     logLevel: env("LOG_LEVEL", "info"),
   };

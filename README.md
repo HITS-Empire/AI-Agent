@@ -22,7 +22,7 @@ cp .env.example .env            # заполнить LITELLM_MASTER_KEY, LITELLM
 pnpm sandbox:build              # образ песочницы
 mkdir -p .secrets/chatgpt .secrets/radicale
 printf 'owner:%s\n' "$(openssl rand -hex 16)" > .secrets/radicale/users   # пароль для Radicale → CALDAV_PASSWORD в .env
-pnpm infra:up                   # postgres+pgvector, redis, litellm, phoenix, ollama, radicale
+pnpm infra:up                   # postgres+pgvector, redis, litellm, phoenix, ollama, radicale, searxng
 docker compose exec ollama ollama pull bge-m3   # модель эмбеддингов для памяти
 ```
 
@@ -71,9 +71,10 @@ curl -s http://127.0.0.1:4000/key/generate \
 ### Запуск
 
 ```bash
+pnpm dev:worker            # worker: цикл агента, очередь, песочница
+pnpm dev:cli               # очередь: задача уходит worker-у, ответ приходит по Redis (та же сессия, что у Telegram)
 pnpm dev:cli -- --direct   # рантайм агента прямо в CLI: память, compaction, инструменты; /usage — расход
-pnpm dev:worker            # worker с циклом агента (очередь)
-pnpm dev:telegram          # Telegram-бот (нужны TELEGRAM_BOT_TOKEN и TELEGRAM_OWNER_ID)
+pnpm dev:telegram          # Telegram-бот, та же сессия owner:main (нужны TELEGRAM_BOT_TOKEN, TELEGRAM_OWNER_ID и worker)
 ```
 
 ### GitHub (MCP)

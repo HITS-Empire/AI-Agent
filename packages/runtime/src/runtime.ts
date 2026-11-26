@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 import {
   ContextManager,
   McpClient,
@@ -71,6 +72,8 @@ export interface RuntimeDeps {
     /** Клиент с учётом расхода: токены извлечения тоже попадают в журнал. */
     llm: LlmClient,
   ) => Promise<string[]>;
+  /** Корень файловых инструментов. По умолчанию WORKSPACE_DIR или cwd. */
+  workspaceRoot?: string;
   /** AGENTS.md и скиллы (часть B). Ошибки не роняют задачу. */
   instructions?: () => Promise<Array<{ path: string; content: string }>>;
   skills?: () => Promise<
@@ -274,7 +277,9 @@ export class AgentRuntime {
           sessionId: input.sessionId,
           taskId,
           ownerId: input.ownerId,
-          workspaceRoot: process.env.WORKSPACE_DIR ?? process.cwd(),
+          workspaceRoot:
+            deps.workspaceRoot ??
+            resolve(process.env.WORKSPACE_DIR ?? process.cwd()),
           ...(hooks.signal ? { signal: hooks.signal } : {}),
           requestApproval: hooks.requestApproval ?? (async () => false),
         },

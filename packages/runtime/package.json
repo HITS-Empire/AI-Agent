@@ -11,6 +11,8 @@
     "@burmalda/integrations": "workspace:*",
     "@burmalda/memory": "workspace:*",
     "@burmalda/observability": "workspace:*",
+    "@burmalda/queue": "workspace:*",
+    "@burmalda/sandbox": "workspace:*",
     "@burmalda/shared": "workspace:*"
   }
 }

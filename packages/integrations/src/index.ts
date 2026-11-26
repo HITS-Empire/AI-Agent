@@ -1,3 +1,7 @@
+export * from "./search/ssrf";
+export * from "./search/html";
+export * from "./search/searxng";
+export * from "./search/fetchPage";
 export * from "./calendar/types";
 export * from "./calendar/intime";
 export * from "./calendar/ics";

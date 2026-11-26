@@ -30,8 +30,11 @@ export function redisConnection(redisUrl: string): {
   };
 }
 
-export function createAgentQueue(redisUrl: string): Queue<AgentTask> {
-  return new Queue<AgentTask>(AGENT_QUEUE, {
+export function createAgentQueue(
+  redisUrl: string,
+  name = AGENT_QUEUE,
+): Queue<AgentTask> {
+  return new Queue<AgentTask>(name, {
     connection: redisConnection(redisUrl),
   });
 }
@@ -49,8 +52,9 @@ export function createAgentWorker(
   redisUrl: string,
   handler: (task: AgentTask, job: Job<AgentTask>) => Promise<unknown>,
   concurrency = 4,
+  name = AGENT_QUEUE,
 ): Worker<AgentTask> {
-  return new Worker<AgentTask>(AGENT_QUEUE, (job) => handler(job.data, job), {
+  return new Worker<AgentTask>(name, (job) => handler(job.data, job), {
     connection: { ...redisConnection(redisUrl), maxRetriesPerRequest: null },
     concurrency,
   });
@@ -116,3 +120,19 @@ export class EventBus {
 
 export const approvalKey = (requestId: string): string =>
   `approval:${requestId}`;
+
+export { enqueueAgentTask, ownerSession, reduceTurn } from "./submit";
+export type { TurnState } from "./submit";
+export {
+  createBullReminderStore,
+  createMemoryReminderStore,
+  createReminderWorker,
+  parseZonedIso,
+  planReminder,
+} from "./reminders";
+export type {
+  ReminderDraft,
+  ReminderRecord,
+  ReminderService,
+  ReminderStore,
+} from "./reminders";

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createInterface, type Interface } from "node:readline";
 import { stdin, stdout } from "node:process";
 import { resolve } from "node:path";
@@ -6,25 +7,41 @@ import {
   PROJECT_NAME,
   createLogger,
   loadConfig,
+  type AgentEvent,
 } from "@burmalda/shared";
 import { createRuntimeFromConfig, type RuntimeBundle } from "@burmalda/runtime";
+import {
+  EventBus,
+  createAgentQueue,
+  enqueueAgentTask,
+  ownerSession,
+  reduceTurn,
+  type TurnState,
+} from "@burmalda/queue";
 
 /**
  * CLI «бурмалды».
- * --direct — рантайм агента прямо в процессе: та же память, сессия и инструменты, что у worker.
- * TODO(B): основной режим — задача в общую очередь + подписка на events:<sessionId>,
- * чтобы разговор из Telegram продолжался здесь (общая сессия владельца).
+ * Без флагов — задача в общую очередь и подписка на events:<sessionId> (нужен worker).
+ * --direct — рантайм агента прямо в процессе, та же сессия владельца.
  */
 async function main(): Promise<void> {
   const config = loadConfig();
   const direct = process.argv.includes("--direct");
+  const { ownerId, sessionId } = ownerSession();
 
   stdout.write(
     `${BANNER}\n  ${PROJECT_NAME} · CLI · ${direct ? "direct" : "queue"} mode\n\n`,
   );
 
+  const rl = createInterface({ input: stdin, output: stdout });
+  const ask = lineReader(rl);
+
   if (!direct) {
-    stdout.write("Режим очереди ещё не готов. Запусти с --direct.\n");
+    try {
+      await runQueue(config.redisUrl, sessionId, ask);
+    } finally {
+      rl.close();
+    }
     return;
   }
 
@@ -32,14 +49,10 @@ async function main(): Promise<void> {
   const log = createLogger("cli", process.env.LOG_LEVEL_CLI ?? "warn", {
     stderr: true,
   });
-  const ownerId = process.env.BURMALDA_OWNER_ID ?? "owner";
-  const sessionId = process.env.BURMALDA_SESSION_ID ?? `${ownerId}:main`;
   const bundle = await createRuntimeFromConfig(config, log, {
     serviceName: "burmalda-cli",
     root: resolve(import.meta.dirname, "../../.."),
   });
-  const rl = createInterface({ input: stdin, output: stdout });
-  const ask = lineReader(rl);
   stdout.write(`  сессия ${sessionId} · /usage — расход · /exit — выход\n\n`);
 
   try {
@@ -85,6 +98,112 @@ async function main(): Promise<void> {
     rl.close();
     await bundle.shutdown();
   }
+}
+
+/**
+ * Режим очереди: задача уходит worker-у, ответ и подтверждения приходят по Redis.
+ * Сессия общая с Telegram.
+ */
+async function runQueue(
+  redisUrl: string,
+  sessionId: string,
+  ask: (prompt: string) => Promise<string | null>,
+): Promise<void> {
+  const queue = createAgentQueue(redisUrl);
+  const bus = new EventBus(redisUrl);
+  stdout.write(
+    `  сессия ${sessionId} · очередь · нужен worker · /exit — выход\n\n`,
+  );
+
+  let active: { taskId: string } | undefined;
+  let state: TurnState | undefined;
+  let settle: ((state: TurnState) => void) | undefined;
+
+  const unsubscribe = await bus.subscribe(sessionId, (event) => {
+    if (!active || event.taskId !== active.taskId || !state || !settle) return;
+    if (event.type === "tool_call") {
+      stdout.write(`  ↳ ${event.name} ${event.argsPreview}\n`);
+    }
+    if (event.type === "tool_result" && !event.ok) {
+      stdout.write(`  ✗ ${event.name}\n`);
+    }
+    if (event.type === "status" && event.text.startsWith("контекст")) {
+      stdout.write(`  · ${event.text}\n`);
+    }
+    if (event.type === "approval_required") {
+      void answerApproval(bus, ask, event);
+    }
+    state = reduceTurn(state, event);
+    if (state.status !== "running") settle(state);
+  });
+
+  try {
+    for (;;) {
+      const line = await ask(`${PROJECT_NAME}> `);
+      if (line === null) break;
+      const text = line.trim();
+      if (!text) continue;
+      if (text === "/exit") break;
+      if (text === "/usage") {
+        stdout.write(
+          "  расход — в режиме --direct (/usage) или в LiteLLM UI\n\n",
+        );
+        continue;
+      }
+      try {
+        const taskId = randomUUID();
+        state = { taskId, text: "", status: "running" };
+        active = { taskId };
+        const result = await new Promise<TurnState>((resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error("worker не ответил")),
+            10 * 60 * 1000,
+          );
+          settle = (next) => {
+            clearTimeout(timer);
+            resolve(next);
+          };
+          void enqueueAgentTask(queue, {
+            sessionId,
+            channel: "cli",
+            text,
+            taskId,
+          }).catch((error: unknown) => {
+            clearTimeout(timer);
+            reject(error instanceof Error ? error : new Error(String(error)));
+          });
+        });
+        if (result.status === "error") {
+          stdout.write(`\n  ошибка: ${result.error ?? "неизвестно"}\n\n`);
+        } else {
+          stdout.write(`\n${result.text}\n\n`);
+        }
+      } catch (error) {
+        stdout.write(
+          `\n  ошибка: ${error instanceof Error ? error.message : String(error)}\n\n`,
+        );
+      } finally {
+        active = undefined;
+        settle = undefined;
+      }
+    }
+  } finally {
+    await unsubscribe();
+    await bus.close();
+    await queue.close();
+  }
+}
+
+async function answerApproval(
+  bus: EventBus,
+  ask: (prompt: string) => Promise<string | null>,
+  event: Extract<AgentEvent, { type: "approval_required" }>,
+): Promise<void> {
+  const answer = await ask(`  ? ${event.text} [y/N] `);
+  await bus.answerApproval(
+    event.requestId,
+    answer?.trim().toLowerCase() === "y",
+  );
 }
 
 /**

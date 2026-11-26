@@ -1,0 +1,2 @@
+# На Windows runner включает core.autocrlf, и prettier --check видит CRLF во всём дереве.
+* text=auto eol=lf
