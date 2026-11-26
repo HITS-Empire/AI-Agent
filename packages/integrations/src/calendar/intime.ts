@@ -11,6 +11,9 @@ import type { CalendarEvent, ExternalScheduleSource } from "./types";
  */
 export const INTIME_DEFAULT_BASE_URL = "https://intime.tsu.ru/api/web/v1";
 
+/** Группа 972302, НОЦ «Высшая ИТ школа». Используется, если INTIME_GROUP_ID пуст. */
+export const INTIME_DEFAULT_GROUP_ID = "ac6b8bef-2c83-11ee-8151-005056bc52bb";
+
 interface InTimeLesson {
   type: string;
   id?: string;
@@ -61,47 +64,13 @@ export class InTimeSource implements ExternalScheduleSource {
   async getEvents(from: Date, to: Date): Promise<CalendarEvent[]> {
     const query = new URLSearchParams({
       id: this.groupId,
-      dateFrom: toDateParam(from),
-      dateTo: toDateParam(to),
+      dateFrom: tomskDateParam(from),
+      dateTo: tomskDateParam(to),
     });
     const response = await this.get<InTimeScheduleResponse>(
       `/schedule/group?${query}`,
     );
-    if (!Array.isArray(response.grid)) {
-      throw new Error("InTime: неожиданный формат ответа (нет grid)");
-    }
-
-    const events: CalendarEvent[] = [];
-    for (const day of response.grid) {
-      for (const lesson of day.lessons) {
-        if (
-          lesson.type !== "LESSON" ||
-          lesson.starts === undefined ||
-          lesson.ends === undefined
-        ) {
-          continue;
-        }
-        const location = [
-          lesson.audience?.name,
-          lesson.audience?.building?.address,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        events.push({
-          id: lesson.id ?? `${day.date}-${lesson.starts}`,
-          title: lesson.title ?? "Занятие",
-          start: atUtcSeconds(day.date, lesson.starts),
-          end: atUtcSeconds(day.date, lesson.ends),
-          location: location || undefined,
-          description:
-            [lesson.lessonType, lesson.professor?.fullName]
-              .filter(Boolean)
-              .join(" · ") || undefined,
-          source: this.name,
-        });
-      }
-    }
-    return events;
+    return parseInTimeSchedule(response);
   }
 
   private async get<T>(path: string): Promise<T> {
@@ -116,8 +85,53 @@ export class InTimeSource implements ExternalScheduleSource {
   }
 }
 
-function toDateParam(date: Date): string {
-  return date.toISOString().slice(0, 10);
+/** Календарный день в Томске, а не UTC: полночь +07 не должна уезжать на предыдущие сутки. */
+export function tomskDateParam(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tomsk",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function parseInTimeSchedule(
+  response: InTimeScheduleResponse,
+): CalendarEvent[] {
+  if (!Array.isArray(response.grid)) {
+    throw new Error("InTime: неожиданный формат ответа (нет grid)");
+  }
+  const events: CalendarEvent[] = [];
+  for (const day of response.grid) {
+    for (const lesson of day.lessons ?? []) {
+      if (
+        lesson.type !== "LESSON" ||
+        lesson.starts === undefined ||
+        lesson.ends === undefined
+      ) {
+        continue;
+      }
+      const location = [
+        lesson.audience?.name,
+        lesson.audience?.building?.address,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      events.push({
+        id: lesson.id ?? `${day.date}-${lesson.starts}`,
+        title: lesson.title ?? "Занятие",
+        start: atUtcSeconds(day.date, lesson.starts),
+        end: atUtcSeconds(day.date, lesson.ends),
+        location: location || undefined,
+        description:
+          [lesson.lessonType, lesson.professor?.fullName]
+            .filter(Boolean)
+            .join(" · ") || undefined,
+        source: "TSU.InTime",
+      });
+    }
+  }
+  return events;
 }
 
 function atUtcSeconds(date: string, seconds: number): string {

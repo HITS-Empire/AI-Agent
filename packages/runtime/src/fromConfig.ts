@@ -23,6 +23,9 @@ import {
 } from "@burmalda/sandbox";
 import {
   IcsSource,
+  InTimeSource,
+  INTIME_DEFAULT_BASE_URL,
+  INTIME_DEFAULT_GROUP_ID,
   createBrowserRenderer,
   createCalDavCalendar,
   createMarketplaceAdapter,
@@ -45,7 +48,7 @@ import {
 import { createTracing, type Tracing } from "@burmalda/observability";
 import type { AppConfig, Logger } from "@burmalda/shared";
 import { AgentRuntime } from "./runtime";
-import { calendarTools } from "./tools/calendar";
+import { calendarTools, scheduleTool } from "./tools/calendar";
 import { marketplaceSearchTool } from "./tools/marketplace";
 import { reminderTools } from "./tools/reminders";
 import { fetchUrlTool, webSearchTool } from "./tools/web";
@@ -136,7 +139,9 @@ export async function createRuntimeFromConfig(
   tools.register(fetchUrlTool());
   const reminders = createBullReminderStore(config.redisUrl);
   for (const tool of reminderTools(reminders.store)) tools.register(tool);
-  for (const tool of calendarTools(calendarSources())) tools.register(tool);
+  const calendars = calendarSources();
+  for (const tool of calendarTools(calendars)) tools.register(tool);
+  tools.register(scheduleTool(calendars.schedule));
   options.extraTools?.(tools);
 
   const otelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -210,6 +215,7 @@ const KNOWN_MARKETPLACES: readonly MarketplaceId[] = [
 function calendarSources(): {
   personal?: PersonalCalendar;
   external?: ExternalScheduleSource;
+  schedule: ExternalScheduleSource;
 } {
   const url = process.env.CALDAV_URL?.trim();
   const username = process.env.CALDAV_USERNAME?.trim();
@@ -218,12 +224,19 @@ function calendarSources(): {
     url && username && password
       ? createCalDavCalendar({ url, username, password })
       : undefined;
+  const schedule = new InTimeSource(
+    process.env.INTIME_GROUP_ID?.trim() || INTIME_DEFAULT_GROUP_ID,
+    process.env.INTIME_BASE_URL?.trim() || INTIME_DEFAULT_BASE_URL,
+  );
+  const mode = process.env.EXTERNAL_CALENDAR_SOURCE?.trim() || "intime";
   const icsUrl = process.env.EXTERNAL_CALENDAR_ICS_URL?.trim();
   const external =
-    process.env.EXTERNAL_CALENDAR_SOURCE === "ics" && icsUrl
+    mode === "ics" && icsUrl
       ? new IcsSource(icsUrl)
-      : undefined;
-  return { personal, external };
+      : mode === "off"
+        ? undefined
+        : schedule;
+  return { personal, external, schedule };
 }
 
 function marketplaceAdapters(

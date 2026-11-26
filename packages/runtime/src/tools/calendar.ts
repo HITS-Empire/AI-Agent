@@ -108,6 +108,26 @@ export function calendarTools(sources: CalendarToolSources): Tool[] {
   return [list, add, remove];
 }
 
+/** Только пары InTime. id с префиксом intime:, удаление — «только чтение». */
+export function scheduleTool(source: ExternalScheduleSource): Tool<{
+  from: string;
+  to: string;
+}> {
+  return {
+    name: "schedule",
+    description:
+      "Расписание группы ТГУ из InTime между from и to (ISO 8601 с часовым поясом). Только чтение. Группа по умолчанию — 972302 (INTIME_GROUP_ID).",
+    parameters: rangeSchema("Начало диапазона", "Конец диапазона"),
+    async execute(args) {
+      const { from, to } = range(args.from, args.to);
+      const events = (await source.getEvents(from, to))
+        .map((event) => ({ ...event, id: prefixed(event.id, "intime") }))
+        .sort((a, b) => a.start.localeCompare(b.start));
+      return JSON.stringify(events);
+    },
+  };
+}
+
 function rangeSchema(from: string, to: string): Tool["parameters"] {
   return {
     type: "object",

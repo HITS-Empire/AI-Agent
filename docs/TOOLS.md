@@ -23,7 +23,8 @@ A пишет навыки и проверяет их на живой модел�
 ## Готово (B)
 
 Живые SearXNG, Radicale и Redis в среде, где писался код, не поднимались: интеграционные тесты
-пропускаются, если сервиса нет. `schedule` (только InTime) — ещё нет.
+пропускаются, если сервиса нет. Расписание InTime сверено с сохранённым ответом API; живой
+запрос в обычный `pnpm check` не входит (только при `TEST_INTIME=1`).
 
 ### Поиск (`skills/web-search`)
 
@@ -51,18 +52,11 @@ A пишет навыки и проверяет их на живой модел�
 | `calendar_list`   | `from: string`, `to: string`                                                   | JSON-массив `CalendarEvent`, по времени   |
 | `calendar_add`    | `title`, `start`, `end?` (по умолчанию +1 ч), `location?`, `description?`      | `{ id, ... }` созданного события          |
 | `calendar_delete` | `id: string`                                                                   | `"Удалено"`; для InTime — «только чтение» |
-
-## Нужно от B
-
-### Расписание InTime (`skills/calendar`)
-
-| Инструмент | Аргументы                    | Результат             |
-| ---------- | ---------------------------- | --------------------- |
-| `schedule` | `from: string`, `to: string` | Только пары из InTime |
+| `schedule`        | `from: string`, `to: string`                                                   | Только пары из InTime                     |
 
 `CalendarEvent` — `packages/integrations/src/calendar/types.ts`.
-Группа по умолчанию — `INTIME_GROUP_ID` (972302). `calendar_list` уже умеет подмешать внешний источник,
-когда рантайм его передаёт.
+Группа по умолчанию — `INTIME_DEFAULT_GROUP_ID` (972302), если `INTIME_GROUP_ID` пуст.
+`calendar_list` подмешивает InTime, пока `EXTERNAL_CALENDAR_SOURCE` не `ics` и не `off`.
 
 ## Контракты, уже в коде
 

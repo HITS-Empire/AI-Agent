@@ -1,0 +1,510 @@
+{
+  "grid": [
+    {
+      "date": "2026-11-23",
+      "lessons": [
+        {
+          "type": "LESSON",
+          "id": "a0101041-76f0-4359-aaa1-33c10029ea0d",
+          "title": "Профессиональный английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (1)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "2442bd1b-5151-11ed-8170-005056bc2da6",
+            "fullName": "Фархади Екатерина Асимовна"
+          },
+          "audience": {
+            "id": "d620b672-c00f-11ea-8117-005056bc52bb",
+            "name": "227 (2) Учебная аудитория",
+            "shortName": "227 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 1,
+          "starts": 6300,
+          "ends": 12000
+        },
+        { "type": "EMPTY", "starts": 12900, "ends": 18600, "lessonNumber": 2 },
+        {
+          "type": "LESSON",
+          "id": "a09f9967-e7ee-48e1-b08b-64e01926b231",
+          "title": "Профессиональный английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (2)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "b5e8020a-5152-11ed-8170-005056bc2da6",
+            "fullName": "Хакимова Альфия Амировна"
+          },
+          "audience": {
+            "id": "7a2cf516-c00e-11ea-8117-005056bc52bb",
+            "name": "214 (2) Учебная аудитория",
+            "shortName": "214 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 3,
+          "starts": 19500,
+          "ends": 25200
+        },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        { "type": "EMPTY", "starts": 41100, "ends": 46800, "lessonNumber": 6 },
+        {
+          "type": "LESSON",
+          "id": "aa022b26-0437-4ae2-8d45-2ea01ef71001",
+          "title": "Искусственный интеллект в разработке программного обеспечения",
+          "lessonType": "PRACTICE",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302",
+              "isSubgroup": false,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "4a18962d-5152-11ed-8170-005056bc2da6",
+            "fullName": "Зоркин Александр Сергеевич"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 7,
+          "starts": 47700,
+          "ends": 53400
+        }
+      ]
+    },
+    {
+      "date": "2026-11-24",
+      "lessons": [
+        { "type": "EMPTY", "starts": 6300, "ends": 12000, "lessonNumber": 1 },
+        { "type": "EMPTY", "starts": 12900, "ends": 18600, "lessonNumber": 2 },
+        {
+          "type": "LESSON",
+          "id": "a99efcea-5b98-4497-a79c-6f295728dbc2",
+          "title": "Академический английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М2)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "ae467bcd-5151-11ed-8170-005056bc2da6",
+            "fullName": "Артамонова Лидия Викторовна"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 3,
+          "starts": 19500,
+          "ends": 25200
+        },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        { "type": "EMPTY", "starts": 41100, "ends": 46800, "lessonNumber": 6 },
+        { "type": "EMPTY", "starts": 47700, "ends": 53400, "lessonNumber": 7 }
+      ]
+    },
+    {
+      "date": "2026-11-25",
+      "lessons": [
+        { "type": "EMPTY", "starts": 6300, "ends": 12000, "lessonNumber": 1 },
+        {
+          "type": "LESSON",
+          "id": "f2facf37-5538-4b01-a7b9-4c56a9475552",
+          "title": "Профессиональный английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (2)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "b5e8020a-5152-11ed-8170-005056bc2da6",
+            "fullName": "Хакимова Альфия Амировна"
+          },
+          "audience": {
+            "id": "c228d4fb-c00e-11ea-8117-005056bc52bb",
+            "name": "216 (2) Учебная аудитория",
+            "shortName": "216 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 2,
+          "starts": 12900,
+          "ends": 18600
+        },
+        {
+          "type": "LESSON",
+          "id": "7ff9f4f1-aab3-4ded-83ae-18de6c05299a",
+          "title": "Право",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302",
+              "isSubgroup": false,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "3deed18a-5152-11ed-8170-005056bc2da6",
+            "fullName": "Чурилов Алексей Юрьевич"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 3,
+          "starts": 19500,
+          "ends": 25200
+        },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        { "type": "EMPTY", "starts": 41100, "ends": 46800, "lessonNumber": 6 },
+        {
+          "type": "LESSON",
+          "id": "fde3eee5-092f-4dc9-94ab-7a4763ff9f8b",
+          "title": "Искусственный интеллект в разработке программного обеспечения",
+          "lessonType": "LECTURE",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302",
+              "isSubgroup": false,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "50b5f566-520e-11ed-8170-005056bc2da6",
+            "fullName": "Плотников Павел Евгеньевич"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 7,
+          "starts": 47700,
+          "ends": 53400
+        }
+      ]
+    },
+    {
+      "date": "2026-11-26",
+      "lessons": [
+        { "type": "EMPTY", "starts": 6300, "ends": 12000, "lessonNumber": 1 },
+        { "type": "EMPTY", "starts": 12900, "ends": 18600, "lessonNumber": 2 },
+        { "type": "EMPTY", "starts": 19500, "ends": 25200, "lessonNumber": 3 },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        {
+          "type": "LESSON",
+          "id": "be959268-445d-4610-abfa-22d5759daffd",
+          "title": "Семинар профессионального трека",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М11)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "3188d55e-514d-11ed-8170-005056bc2da6",
+            "fullName": "Змеев Олег Алексеевич"
+          },
+          "audience": {
+            "id": "6f380fc5-c00f-11ea-8117-005056bc52bb",
+            "name": "224 (2) Учебная аудитория",
+            "shortName": "224 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 6,
+          "starts": 41100,
+          "ends": 46800
+        },
+        {
+          "type": "LESSON",
+          "id": "28fa17ce-d479-432f-8b8a-15d3bb7390e1",
+          "title": "Семинар профессионального трека",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М13)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "ca331d29-5150-11ed-8170-005056bc2da6",
+            "fullName": "Иванова Лидия Сергеевна"
+          },
+          "audience": {
+            "id": "cea6317d-c010-11ea-8117-005056bc52bb",
+            "name": "233 (2) Компьютерный класс",
+            "shortName": "233 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 6,
+          "starts": 41100,
+          "ends": 46800
+        },
+        {
+          "type": "LESSON",
+          "id": "757c2558-e2b7-4268-bd2e-efa0c88dfe2f",
+          "title": "Семинар профессионального трека",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М12)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "c1dd27af-5209-11ed-8170-005056bc2da6",
+            "fullName": "Змеев Денис Олегович"
+          },
+          "audience": {
+            "id": "1d5058ec-c011-11ea-8117-005056bc52bb",
+            "name": "237 (2) Компьютерный класс",
+            "shortName": "237 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 6,
+          "starts": 41100,
+          "ends": 46800
+        },
+        { "type": "EMPTY", "starts": 47700, "ends": 53400, "lessonNumber": 7 }
+      ]
+    },
+    {
+      "date": "2026-11-27",
+      "lessons": [
+        {
+          "type": "LESSON",
+          "id": "60d091b7-5803-4567-9c1f-143720ff4a12",
+          "title": "Корпоративные информационные технологии",
+          "lessonType": "LECTURE",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302",
+              "isSubgroup": false,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "3188d55e-514d-11ed-8170-005056bc2da6",
+            "fullName": "Змеев Олег Алексеевич"
+          },
+          "audience": {
+            "id": "3294c0bb-c007-11ea-8117-005056bc52bb",
+            "name": "051 (2) Учебная аудитория ",
+            "shortName": "051 (2)",
+            "building": {
+              "id": "4761a634-bffd-11ea-8117-005056bc52bb",
+              "name": "2 корпус",
+              "address": "пр. Ленина, 36к2",
+              "latitude": 56.46865105233865,
+              "longitude": 84.94516758526417
+            }
+          },
+          "lessonNumber": 1,
+          "starts": 6300,
+          "ends": 12000
+        },
+        {
+          "type": "LESSON",
+          "id": "1cbc288d-cabe-4cf4-948d-89168468fcb5",
+          "title": "Академический английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М2)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "ae467bcd-5151-11ed-8170-005056bc2da6",
+            "fullName": "Артамонова Лидия Викторовна"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 2,
+          "starts": 12900,
+          "ends": 18600
+        },
+        {
+          "type": "LESSON",
+          "id": "05d8b3ea-bf24-4ad5-8f5a-ebb5bc8488a4",
+          "title": "Профессиональный английский язык",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (1)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "2442bd1b-5151-11ed-8170-005056bc2da6",
+            "fullName": "Фархади Екатерина Асимовна"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 3,
+          "starts": 19500,
+          "ends": 25200
+        },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        { "type": "EMPTY", "starts": 41100, "ends": 46800, "lessonNumber": 6 },
+        { "type": "EMPTY", "starts": 47700, "ends": 53400, "lessonNumber": 7 }
+      ]
+    },
+    {
+      "date": "2026-11-28",
+      "lessons": [
+        { "type": "EMPTY", "starts": 6300, "ends": 12000, "lessonNumber": 1 },
+        { "type": "EMPTY", "starts": 12900, "ends": 18600, "lessonNumber": 2 },
+        { "type": "EMPTY", "starts": 19500, "ends": 25200, "lessonNumber": 3 },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        {
+          "type": "LESSON",
+          "id": "9847ad68-5d88-499c-b9f8-d632803b537b",
+          "title": "Семинар по наукоемкой разработке",
+          "lessonType": "SEMINAR",
+          "groups": [
+            {
+              "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+              "name": "972302 (М2)",
+              "isSubgroup": true,
+              "facultyId": "aa30cf34-6279-11e9-8107-005056bc52bb"
+            }
+          ],
+          "professor": {
+            "id": "c1dd27af-5209-11ed-8170-005056bc2da6",
+            "fullName": "Змеев Денис Олегович"
+          },
+          "audience": {
+            "id": null,
+            "name": "Онлайн",
+            "shortName": null,
+            "building": null
+          },
+          "lessonNumber": 6,
+          "starts": 41100,
+          "ends": 46800
+        },
+        { "type": "EMPTY", "starts": 47700, "ends": 53400, "lessonNumber": 7 }
+      ]
+    },
+    {
+      "date": "2026-11-29",
+      "lessons": [
+        { "type": "EMPTY", "starts": 6300, "ends": 12000, "lessonNumber": 1 },
+        { "type": "EMPTY", "starts": 12900, "ends": 18600, "lessonNumber": 2 },
+        { "type": "EMPTY", "starts": 19500, "ends": 25200, "lessonNumber": 3 },
+        { "type": "EMPTY", "starts": 27900, "ends": 33600, "lessonNumber": 4 },
+        { "type": "EMPTY", "starts": 34500, "ends": 40200, "lessonNumber": 5 },
+        { "type": "EMPTY", "starts": 41100, "ends": 46800, "lessonNumber": 6 },
+        { "type": "EMPTY", "starts": 47700, "ends": 53400, "lessonNumber": 7 }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "ac6b8bef-2c83-11ee-8151-005056bc52bb",
+      "faculty": {
+        "id": "aa30cf34-6279-11e9-8107-005056bc52bb",
+        "name": "Научно-образовательный центр \"Высшая ИТ школа\""
+      },
+      "name": "972302",
+      "isSubgroup": false
+    }
+  ],
+  "professors": [],
+  "audiences": [],
+  "hash": "155abe2a99d61c55063350e534e51dbfde5f65f20a72b61a8e51416eb3569839"
+}

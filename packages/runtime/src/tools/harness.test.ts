@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { ToolContext } from "@burmalda/core";
 import type { PersonalCalendar, CalendarEvent } from "@burmalda/integrations";
 import { createMemoryReminderStore } from "@burmalda/queue";
-import { calendarTools } from "./calendar";
+import { calendarTools, scheduleTool } from "./calendar";
 import { reminderTools } from "./reminders";
 import { fetchUrlTool, webSearchTool } from "./web";
 
@@ -111,4 +111,28 @@ test("календарь: час по умолчанию, слияние и то
   );
   assert.equal(remove!.dangerous, true);
   assert.equal(await remove!.execute({ id: "personal:uid-1" }, ctx), "Удалено");
+
+  const schedule = scheduleTool({
+    name: "TSU.InTime",
+    async getEvents() {
+      return [
+        {
+          id: "pair-1",
+          title: "Математика",
+          start: "2026-11-27T01:45:00.000Z",
+          end: "2026-11-27T03:15:00.000Z",
+          source: "TSU.InTime",
+        },
+      ];
+    },
+  });
+  const pairs = JSON.parse(
+    await schedule.execute(
+      { from: "2026-11-27T00:00:00+07:00", to: "2026-11-28T00:00:00+07:00" },
+      ctx,
+    ),
+  ) as Array<{ id: string; title: string }>;
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0]?.id, "intime:pair-1");
+  assert.equal(pairs[0]?.title, "Математика");
 });
